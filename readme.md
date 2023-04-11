@@ -1,7 +1,5 @@
 # NFC NDEF example
 
-todo: make Write encrypted running
-
 Icons: https://www.freeiconspng.com/images/nfc-icon
 
 Nfc Simple PNG Transparent Background: https://www.freeiconspng.com/img/20581
