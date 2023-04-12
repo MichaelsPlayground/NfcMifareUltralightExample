@@ -118,10 +118,10 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 String desc12 = GetAccessConditionsDescription(context, accBytes1Matrix, 1, false);
                 String desc13 = GetAccessConditionsDescription(context, accBytes1Matrix, 2, false);
                 String desc14 = GetAccessConditionsDescription(context, accBytes1Matrix, 3, true);
-                String desc21 = GetAccessConditionsDescription(context, accBytes2Matrix, 5, false);
-                String desc22 = GetAccessConditionsDescription(context, accBytes2Matrix, 6, false);
-                String desc23 = GetAccessConditionsDescription(context, accBytes2Matrix, 7, false);
-                String desc24 = GetAccessConditionsDescription(context, accBytes2Matrix, 8, true);
+                String desc21 = GetAccessConditionsDescription(context, accBytes2Matrix, 0, false);
+                String desc22 = GetAccessConditionsDescription(context, accBytes2Matrix, 1, false);
+                String desc23 = GetAccessConditionsDescription(context, accBytes2Matrix, 2, false);
+                String desc24 = GetAccessConditionsDescription(context, accBytes2Matrix, 3, true);
                 StringBuilder sb = new StringBuilder();
                 sb.append("accBytesMatrix description").append("\n");
                 sb.append("desc11: ").append(desc11).append("\n");
