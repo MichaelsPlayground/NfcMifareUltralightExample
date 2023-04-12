@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    namespace 'de.androidcrypto.nfcndefexample'
+    namespace 'de.androidcrypto.nfcmifareclassicexample'
     compileSdk 33
 
     defaultConfig {
-        applicationId "de.androidcrypto.nfcndefexample"
-        minSdk 26
+        applicationId "de.androidcrypto.nfcmifareclassicexample"
+        minSdk 21
         targetSdk 33
         versionCode 1
         versionName "1.0"

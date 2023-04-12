@@ -1,11 +1,14 @@
-package de.androidcrypto.nfcndefexample;
+package de.androidcrypto.nfcmifareclassicexample;
 
+import android.content.Context;
+import android.content.pm.FeatureInfo;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -72,6 +75,22 @@ public class HomeFragment extends Fragment {
                 displayLicensesAlertDialog();
             }
         });
+
+        boolean nxpChipAvailable = deviceSupportsMifareClassic(view.getContext());
+        String messageTrue = "Congratulations ! Your device IS supporting Mifare Ultralight and/or Mifare Classic NFC tags.";
+        String messageFalse = "I'm sorry, but your device is NOT supporting Mifare Ultralight and/or Mifare Classic NFC tags.";
+        TextView textViewTrue = getView().findViewById(R.id.textViewTrue);
+        TextView textViewFalse = getView().findViewById(R.id.textViewFalse);
+        if (nxpChipAvailable) {
+            textViewTrue.setVisibility(View.VISIBLE);
+            textViewTrue.setText(messageTrue);
+            textViewFalse.setVisibility(View.GONE);
+        } else {
+            // todo disable read & write buttons
+            textViewTrue.setVisibility(View.GONE);
+            textViewFalse.setText(messageFalse);
+            textViewFalse.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -96,6 +115,17 @@ public class HomeFragment extends Fragment {
                 .setView(view)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    public boolean deviceSupportsMifareClassic(Context context) {
+        FeatureInfo[] info = context.getPackageManager().getSystemAvailableFeatures();
+        for (FeatureInfo i : info) {
+            String name = i.name;
+            if (name != null && name.equals("com.nxp.mifare")) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

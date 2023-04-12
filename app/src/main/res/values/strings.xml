@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">NFC NDEF Example</string>
+    <string name="app_name">NFC Mifare Classic Example</string>
     <string name="home_description">This application reads and writes NDEF messages from/to an NFC tag.\n\nAdditionally the app shows how to work with encrypted data that needs decryption.</string>
     <string name="home_fragments">There are 5 icons to click on:\n1 home = this page\n2 read NDEF message\n3 read encr = read an encrypted NDEF message\n4 write an NDEF message\n5 write encr = write an encrypted NDEF message</string>
-    <string name="header_read">This app reads an NDEF message</string>
-    <string name="description_read">This example expects a class 4 type tag with an NDEF record (RTD_TEXT).\n\nWhen a tag is discovered the data from all records will be read.</string>
+    <string name="header_read">This app reads a Mifare Classic 1K tag</string>
+    <string name="description_read">This example expects a Mifare Classic 1K type tag. The tag should use only the well known keys A and B for authentication.\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="header_read_ciphertext">This app reads an encrypted NDEF message</string>
     <string name="description_read_ciphertext">This example expects a class 4 type tag with an encrypted NDEF record (RTD_TEXT).\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="nfc_result">NFC read result</string>
