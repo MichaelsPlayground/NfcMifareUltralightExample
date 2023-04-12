@@ -34,6 +34,13 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
+            <Button
+                android:id="@+id/btnCheckAccessBytes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:text="check access bytes" />
+
             <TextView
                 android:id="@+id/tvReadResult"
                 android:layout_width="match_parent"

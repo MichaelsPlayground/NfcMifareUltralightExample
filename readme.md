@@ -6,5 +6,7 @@ Nfc Simple PNG Transparent Background: https://www.freeiconspng.com/img/20581
 
 <a href="https://www.freeiconspng.com/img/20581">Nfc Png Simple</a>
 
-Minimum SDK is 26 (Android 8)
+Minimum SDK is 21 (Android 5)
+
+
 

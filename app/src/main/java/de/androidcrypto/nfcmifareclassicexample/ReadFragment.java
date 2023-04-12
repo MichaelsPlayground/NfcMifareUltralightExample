@@ -3,6 +3,7 @@ package de.androidcrypto.nfcmifareclassicexample;
 import static android.content.Context.VIBRATOR_SERVICE;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.bytesToHexNpe;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.doVibrate;
+import static de.androidcrypto.nfcmifareclassicexample.Utils.hexStringToByteArray;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.playSinglePing;
 
 import android.content.Context;
@@ -24,6 +25,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -75,6 +77,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     }
 
     TextView readResult;
+    Button checkAccessBytes;
     private String outputString = ""; // used for the UI output
     private NfcAdapter mNfcAdapter;
     String dumpExportString = "";
@@ -98,7 +101,41 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         readResult = getView().findViewById(R.id.tvReadResult);
+        checkAccessBytes = getView().findViewById(R.id.btnCheckAccessBytes);
         //doVibrate();
+
+        checkAccessBytes.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // we do have these access bytes found: 787788 + 7f0788
+                byte[] accBytes1 = hexStringToByteArray("787788");
+                byte[] accBytes2 = hexStringToByteArray("7f0788");
+
+                byte[][] accBytes1Matrix = ACBytesToACMatrix(accBytes1);
+                byte[][] accBytes2Matrix = ACBytesToACMatrix(accBytes2);
+                Context context = getContext();
+                String desc11 = GetAccessConditionsDescription(context, accBytes1Matrix, 0, false);
+                String desc12 = GetAccessConditionsDescription(context, accBytes1Matrix, 1, false);
+                String desc13 = GetAccessConditionsDescription(context, accBytes1Matrix, 2, false);
+                String desc14 = GetAccessConditionsDescription(context, accBytes1Matrix, 3, true);
+                String desc21 = GetAccessConditionsDescription(context, accBytes2Matrix, 5, false);
+                String desc22 = GetAccessConditionsDescription(context, accBytes2Matrix, 6, false);
+                String desc23 = GetAccessConditionsDescription(context, accBytes2Matrix, 7, false);
+                String desc24 = GetAccessConditionsDescription(context, accBytes2Matrix, 8, true);
+                StringBuilder sb = new StringBuilder();
+                sb.append("accBytesMatrix description").append("\n");
+                sb.append("desc11: ").append(desc11).append("\n");
+                sb.append("desc12: ").append(desc12).append("\n");
+                sb.append("desc13: ").append(desc13).append("\n");
+                sb.append("desc14: ").append(desc14).append("\n");
+                sb.append("desc21: ").append(desc21).append("\n");
+                sb.append("desc22: ").append(desc22).append("\n");
+                sb.append("desc23: ").append(desc23).append("\n");
+                sb.append("desc24: ").append(desc24).append("\n");
+                writeToUiAppend(sb.toString());
+                writeToUiFinal(readResult);
+            }
+        });
     }
 
     @Override
@@ -107,6 +144,68 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_read, container, false);
     }
+
+    //public static String GetAccessConditionsDescription(byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
+    public static String GetAccessConditionsDescription(Context context, byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
+        if(sectorAccessBits == null || blockIndex < 0 || blockIndex >= sectorAccessBits[0].length) {
+            return "";
+        }
+        int accessBitsNumber = (sectorAccessBits[0][blockIndex] << 2) | (sectorAccessBits[1][blockIndex] << 1) | sectorAccessBits[0][blockIndex];
+        String resAccessCondsPrefix = isSectorTrailer ? "ac_sector_trailer_" : "ac_data_block_";
+        String accessCondsResIdStr = resAccessCondsPrefix + accessBitsNumber;
+        //Context appContext = localMFCDataIface.GetApplicationContext();
+        Log.d(TAG, "resAccessCondsPrefix: " + resAccessCondsPrefix);
+        Log.d(TAG, "accessCondsResIdStr: " + accessCondsResIdStr);
+        Context appContext = context;
+        try {
+            int accessCondsResId = R.string.class.getField(accessCondsResIdStr).getInt(null);
+            Log.d(TAG, "appContext.getResources().getString(accessCondsResId): " + appContext.getResources().getString(accessCondsResId));
+            return appContext.getResources().getString(accessCondsResId);
+        } catch(Exception nsfe) {
+            Log.e(TAG, "Exception in GetAccessConditionsDescription: " + nsfe.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Convert the Access Condition bytes to a matrix containing the
+     * resolved C1, C2 and C3 for each block.
+     * @param acBytes The Access Condition bytes (3 byte).
+     * @return Matrix of access conditions bits (C1-C3) where the first
+     * dimension is the "C" parameter (C1-C3, Index 0-2) and the second
+     * dimension is the block number (Index 0-3). If the ACs are incorrect
+     * null will be returned.
+     */
+    private static byte[][] ACBytesToACMatrix(byte acBytes[]) {
+        // ACs correct?
+        // C1 (Byte 7, 4-7) == ~C1 (Byte 6, 0-3) and
+        // C2 (Byte 8, 0-3) == ~C2 (Byte 6, 4-7) and
+        // C3 (Byte 8, 4-7) == ~C3 (Byte 7, 0-3)
+        byte[][] acMatrix = new byte[3][4];
+        if (acBytes.length > 2 &&
+                (byte)((acBytes[1]>>>4)&0x0F)  ==
+                        (byte)((acBytes[0]^0xFF)&0x0F) &&
+                (byte)(acBytes[2]&0x0F) ==
+                        (byte)(((acBytes[0]^0xFF)>>>4)&0x0F) &&
+                (byte)((acBytes[2]>>>4)&0x0F)  ==
+                        (byte)((acBytes[1]^0xFF)&0x0F)) {
+            // C1, Block 0-3
+            for (int i = 0; i < 4; i++) {
+                acMatrix[0][i] = (byte)((acBytes[1]>>>4+i)&0x01);
+            }
+            // C2, Block 0-3
+            for (int i = 0; i < 4; i++) {
+                acMatrix[1][i] = (byte)((acBytes[2]>>>i)&0x01);
+            }
+            // C3, Block 0-3
+            for (int i = 0; i < 4; i++) {
+                acMatrix[2][i] = (byte)((acBytes[2]>>>4+i)&0x01);
+            }
+            return acMatrix;
+        }
+        return null;
+    }
+
 
     // This method is running in another thread when a card is discovered
     // !!!! This method cannot cannot direct interact with the UI Thread
