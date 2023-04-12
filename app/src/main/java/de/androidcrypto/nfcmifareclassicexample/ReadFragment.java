@@ -149,8 +149,37 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
 
         writeToUiAppend(sb.toString());
+/*
+keys for red crowne card
+4D57414C5648
+FFFFFFFFFFFF
+A0A1A2A3A4A5
+4D48414C5648
+ */
+/*
+promark keys
+[ 0] ffffffffffff
+[ 1] 000000000000
+[ 2] a0a1a2a3a4a5
+[ 3] b0b1b2b3b4b5
+[ 4] c0c1c2c3c4c5
+[ 5] d0d1d2d3d4d5
+[ 6] aabbccddeeff
+[ 7] 1a2b3c4d5e6f
+[ 8] 123456789abc
+[ 9] 010203040506
+[10] 123456abcdef
+[11] abcdef123456
+[12] 4d3a99c351dd
+[13] 1a982c7e459a
+[14] d3f7d3f7d3f7
+[15] 714c5c886e97
+[16] 587ee5f9350f
+[17] a0478cc39091
+[18] 533cb6c723f6
+[19] 8fd0a4f256e9
 
-
+ */
 
         // go through all sectors
         try {
