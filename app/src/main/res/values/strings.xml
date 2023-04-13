@@ -1,14 +1,14 @@
 <resources>
     <string name="app_name">NFC Mifare Classic Example</string>
-    <string name="home_description">This application reads and writes NDEF messages from/to an NFC tag.\n\nAdditionally the app shows how to work with encrypted data that needs decryption.</string>
-    <string name="home_fragments">There are 5 icons to click on:\n1 home = this page\n2 read NDEF message\n3 read encr = read an encrypted NDEF message\n4 write an NDEF message\n5 write encr = write an encrypted NDEF message</string>
-    <string name="header_read">This app reads a Mifare Classic 1K tag</string>
+    <string name="home_description">This application reads and writes data from/to an Mifare Classic 1K NFC tag.</string>
+    <string name="home_fragments">There are 5 icons to click on:\n1 home = this page\n2 read data\n3 read encr = read encrypted data\n4 write data\n5 write encr = write an encrypted data</string>
+    <string name="header_read">This app works with a Mifare Classic 1K tag for reading</string>
     <string name="description_read">This example expects a Mifare Classic 1K type tag. The tag should use only the well known keys A and B for authentication.\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="header_read_ciphertext">This app reads an encrypted NDEF message</string>
     <string name="description_read_ciphertext">This example expects a class 4 type tag with an encrypted NDEF record (RTD_TEXT).\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="nfc_result">NFC read result</string>
-    <string name="header_write">Write an NDEF message</string>
-    <string name="description_write">This example writes an NDEF record (RTD_TEXT) and message to an NTAG 216 tag</string>
+    <string name="header_write">This app works with a Mifare Classic 1K tag for writing</string>
+    <string name="description_write">This example writes data to a sector on a Mifare Classic 1K tag</string>
     <string name="read_ciphertext_description">If an encryption dataset is found the data is displayed as well and you can enter a passphrase to decrypt the data.</string>
     <string name="action_licenses">Used material and their licenses</string>
 </resources>

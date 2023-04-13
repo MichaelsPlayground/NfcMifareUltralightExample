@@ -8,21 +8,21 @@
 
     <item
         android:id="@+id/read"
-        android:icon="@drawable/nfc_icon_20581"
+        android:icon="@drawable/nfc_icon_r2"
         android:title="Read" />
 
     <item
         android:id="@+id/read_ciphertext"
-        android:icon="@drawable/nfc_icon_20581"
+        android:icon="@drawable/nfc_icon_re2"
         android:title="Read Encr" />
 
     <item
         android:id="@+id/write"
-        android:icon="@drawable/nfc_icon_20581"
+        android:icon="@drawable/nfc_icon_w2"
         android:title="Write" />
 
     <item
         android:id="@+id/write_ciphertext"
-        android:icon="@drawable/nfc_icon_20581"
+        android:icon="@drawable/nfc_icon_we2"
         android:title="Write Encr" />
 </menu>
