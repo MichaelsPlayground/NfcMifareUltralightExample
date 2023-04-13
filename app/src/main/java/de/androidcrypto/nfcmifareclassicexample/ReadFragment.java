@@ -132,10 +132,22 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 sb.append("desc22: ").append(desc22).append("\n");
                 sb.append("desc23: ").append(desc23).append("\n");
                 sb.append("desc24: ").append(desc24).append("\n");
+
+                // a human readable form
+
+
+
                 writeToUiAppend(sb.toString());
                 writeToUiFinal(readResult);
             }
         });
+    }
+
+    private String getAccessConditionHR(Context context, byte[] accessBytes, int blockIndex, boolean isSectorTrailer) {
+        byte[][] accBytesMatrix = ACBytesToACMatrix(accessBytes);
+        String desc = GetAccessConditionsDescription(context, accBytesMatrix, blockIndex, isSectorTrailer);
+        StringBuilder sb = new StringBuilder();
+        return sb.toString();
     }
 
     @Override
@@ -156,11 +168,10 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         //Context appContext = localMFCDataIface.GetApplicationContext();
         Log.d(TAG, "resAccessCondsPrefix: " + resAccessCondsPrefix);
         Log.d(TAG, "accessCondsResIdStr: " + accessCondsResIdStr);
-        Context appContext = context;
         try {
             int accessCondsResId = R.string.class.getField(accessCondsResIdStr).getInt(null);
-            Log.d(TAG, "appContext.getResources().getString(accessCondsResId): " + appContext.getResources().getString(accessCondsResId));
-            return appContext.getResources().getString(accessCondsResId);
+            Log.d(TAG, "appContext.getResources().getString(accessCondsResId): " + context.getResources().getString(accessCondsResId));
+            return context.getResources().getString(accessCondsResId);
         } catch(Exception nsfe) {
             Log.e(TAG, "Exception in GetAccessConditionsDescription: " + nsfe.getMessage());
             return "";
@@ -248,6 +259,16 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
 
         writeToUiAppend(sb.toString());
+
+/*
+default keys
+KEY_MIFARE_
+APPLICATION_
+DIRECTORY:     a0a1a2a3a4a5
+KEY_DEFAULT:   ffffffffffff
+KEY_NFC_FORUM: d3f7d3f7d3f7
+ */
+
 /*
 keys for red crowne card
 4D57414C5648
@@ -396,7 +417,47 @@ promark keys
         byte[] dataBytes = new byte[64];
         boolean isAuthenticated = false;
         // try to authenticate with known keys - no brute force
+        Log.d(TAG,"");
+        Log.d(TAG, "readMifareSector " + secCnt);
         try {
+            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
+                keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
+                Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
+                isAuthenticated = true;
+                // there are 3 default keys available
+                // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
+                // MifareClassic.KEY_DEFAULT:                      ffffffffffff
+                // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
+            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
+                keyABytes = MifareClassic.KEY_DEFAULT.clone();
+                Log.d(TAG, "Auth success with A KEY_DEFAULT");
+                isAuthenticated = true;
+            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_NFC_FORUM)) {
+                keyABytes = MifareClassic.KEY_NFC_FORUM.clone();
+                Log.d(TAG, "Auth success with A KEY_NFC_FORUM");
+                isAuthenticated = true;
+            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
+                keyBBytes = MifareClassic.KEY_DEFAULT.clone();
+                Log.d(TAG, "Auth success with B KEY_DEFAULT");
+                isAuthenticated = true;
+            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
+                keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
+                isAuthenticated = true;
+                Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
+            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
+                keyBBytes = MifareClassic.KEY_NFC_FORUM;
+                Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
+                isAuthenticated = true;
+            } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
+                keyABytes = hexStringToByteArray("4D57414C5648");
+                Log.d(TAG, "Auth success with A Crowne Plaza key");
+                isAuthenticated = true;
+                //4D57414C5648
+            } else {
+                //return null;
+                Log.d(TAG, "NO Auth success");
+            }
+            /*
             if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
                 keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
                 isAuthenticated = true;
@@ -422,6 +483,8 @@ promark keys
             } else {
                 //return null;
             }
+
+             */
             // get the blockindex
             int block_index = mif.sectorToBlock(secCnt);
             // get block in sector
@@ -434,7 +497,7 @@ promark keys
                 System.arraycopy(block, 0, dataBytes, (blockInSectorCount * 16), 16);
             }
         } catch (IOException e) {
-            Log.e(TAG, "IOException: " + e.getMessage());
+            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
