@@ -186,7 +186,7 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
         // you should have checked that this device is capable of working with Mifare Classic tags, otherwise you receive an exception
 
         String sendData = dataToSend.getText().toString();
-        if (addTimestampToData.isChecked()) sendData = sendData + getTimestamp();
+        if (addTimestampToData.isChecked()) sendData = sendData + " " + getTimestamp();
         if (TextUtils.isEmpty(sendData)) {
             writeToUiAppend("Please enter some data to write on tag. Aborted");
             writeToUiFinal(resultNfcWriting);
