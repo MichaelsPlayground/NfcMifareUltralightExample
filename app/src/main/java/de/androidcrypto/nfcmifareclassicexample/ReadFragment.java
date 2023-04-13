@@ -234,7 +234,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             readResult.setText("");
         });
 
-        // you should have checked that this device is capable of working with Mifare Classic tags, therwise you receive an exception
+        // you should have checked that this device is capable of working with Mifare Classic tags, otherwise you receive an exception
 
         MifareClassic mfc = MifareClassic.get(tag);
         if (mfc == null) {
@@ -457,34 +457,7 @@ promark keys
                 //return null;
                 Log.d(TAG, "NO Auth success");
             }
-            /*
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                isAuthenticated = true;
-                // there are 3 default keys available
-                // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
-                // MifareClassic.KEY_DEFAULT:                      ffffffffffff
-                // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
-            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                keyABytes = MifareClassic.KEY_DEFAULT.clone();
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                keyABytes = MifareClassic.KEY_NFC_FORUM;
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                keyBBytes = MifareClassic.KEY_NFC_FORUM;
-                isAuthenticated = true;
-            } else {
-                //return null;
-            }
 
-             */
             // get the blockindex
             int block_index = mif.sectorToBlock(secCnt);
             // get block in sector

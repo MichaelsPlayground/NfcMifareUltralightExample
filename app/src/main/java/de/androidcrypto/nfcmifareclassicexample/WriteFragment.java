@@ -1,9 +1,13 @@
 package de.androidcrypto.nfcmifareclassicexample;
 
+import static de.androidcrypto.nfcmifareclassicexample.Utils.bytesToHexNpe;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.doVibrate;
+import static de.androidcrypto.nfcmifareclassicexample.Utils.getTimestamp;
+import static de.androidcrypto.nfcmifareclassicexample.Utils.hexStringToByteArray;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.playSinglePing;
 
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
@@ -11,16 +15,23 @@ import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.TagLostException;
+import android.nfc.tech.MifareClassic;
 import android.nfc.tech.Ndef;
 import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.InputFilter;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -30,6 +41,9 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -42,20 +56,20 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    private static final String TAG = "WriteFragment";
 
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
 
-    com.google.android.material.textfield.TextInputLayout inputField1Decoration, inputField2Decoration, inputField3Decoration;
-    com.google.android.material.textfield.TextInputEditText typeDescription, inputField1, inputField2, inputField3, resultNfcWriting;
+    com.google.android.material.textfield.TextInputEditText dataToSend, resultNfcWriting;
     SwitchMaterial addTimestampToData;
     AutoCompleteTextView autoCompleteTextView;
     com.google.android.material.textfield.TextInputLayout dataToSendLayout;
-    com.google.android.material.textfield.TextInputEditText dataToSend;
-    //private final String DEFAULT_URL = "https://www.google.de/maps/@34.7967917,-111.765671,3a,66.6y,15.7h,102.19t/data=!3m6!1e1!3m4!1sFV61wUEyLNwFi6zHHaKMcg!2e0!7i16384!8i8192";
-    private final String DEFAULT_URL = "https://github.com/AndroidCrypto?tab=repositories";
+
     private NfcAdapter mNfcAdapter;
+    private int sectorToWrite;
+    private String outputString = ""; // used for the UI output
 
     public WriteFragment() {
         // Required empty public constructor
@@ -101,228 +115,54 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 
-        typeDescription = getView().findViewById(R.id.etMainTypeDescription);
-        inputField1 = getView().findViewById(R.id.etMainInputline1);
-        inputField1Decoration = getView().findViewById(R.id.etMainInputline1Decoration);
-        inputField2 = getView().findViewById(R.id.etMainInputline2);
-        inputField2Decoration = getView().findViewById(R.id.etMainInputline2Decoration);
-        inputField3 = getView().findViewById(R.id.etMainInputline3);
-        inputField3Decoration = getView().findViewById(R.id.etMainInputline3Decoration);
+        dataToSend = getView().findViewById(R.id.etWriteData);
+        dataToSendLayout = getView().findViewById(R.id.etWriteDataLayout);
         resultNfcWriting = getView().findViewById(R.id.etMainResult);
         addTimestampToData = getView().findViewById(R.id.swMainAddTimestampSwitch);
 
         String[] type = new String[]{
-                "Text", "URI", "Telephone number", "Coordinate", "Coordinate userinfo", "StreetView",
-                "Address", "Google navigation", "Email", "Application"};
+                "1", "2", "3", "4", "5",
+                "6", "7", "8", "9"};
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(
                 getView().getContext(),
                 R.layout.drop_down_item,
                 type);
 
-        autoCompleteTextView = getView().findViewById(R.id.ndef_type);
+        autoCompleteTextView = getView().findViewById(R.id.writeSector);
+        autoCompleteTextView.setText(type[0]);
         autoCompleteTextView.setAdapter(arrayAdapter);
+
 
         mNfcAdapter = NfcAdapter.getDefaultAdapter(getView().getContext());
 
-        hideAllInputFields();
-
+        // todo work with sector 0, has only 32 bytes of data to write (block 1 + 2)
         autoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                String choiceString = autoCompleteTextView.getText().toString();
-                //Toast.makeText(MainActivity.this, autoCompleteTextView.getText().toString(), Toast.LENGTH_SHORT).show();
-                switch (choiceString) {
-                    case "Text": {
-                        inputSchemeText();
-                        break;
-                    }
-                    case "URI": {
-                        inputSchemeUri();
-                        break;
-                    }
-                    case "StreetView": {
-                        inputSchemeStreetview();
-                        break;
-                    }
-                    case "Email": {
-                        inputSchemeEmail();
-                        break;
-                    }
-                    case "Telephone number": {
-                        inputSchemeTelephoneNumber();
-                        break;
-                    }
-                    case "Coordinate": {
-                        inputSchemeCoordinate();
-                        break;
-                    }
-                    case "Coordinate userinfo": {
-                        inputSchemeCoordinateUserinfo();
-                        break;
-                    }
-                    case "Address": {
-                        inputSchemeAddress();
-                        break;
-                    }
-                    case "Google navigation": {
-                        inputSchemeGoogleNavigation();
-                        break;
-                    }
-                    case "Application": {
-                        inputSchemeApplication();
-                        break;
-                    }
-                    default: {
-                        hideAllInputFields();
-                        break;
-                    }
+                Log.d(TAG, "sectorToWrite: " + sectorToWrite);
+            }
+        });
+
+        addTimestampToData.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                // ts is 19 chars long + 1 separator = 20 characters
+                if (b) {
+                    dataToSendLayout.setCounterMaxLength(48 - 20);
+                    String ds = dataToSend.getText().toString();
+                    if (ds.length() > 28) dataToSend.setText(ds.substring(0, 28));
+                    setEditTextMaxLength(dataToSend, 28);
+                } else {
+                    dataToSendLayout.setCounterMaxLength(48);
+                    setEditTextMaxLength(dataToSend, 48);
                 }
             }
         });
 
     }
 
-    private void hideAllInputFields() {
-        typeDescription.setVisibility(View.GONE);
-        inputField1Decoration.setVisibility(View.GONE);
-        inputField2Decoration.setVisibility(View.GONE);
-        inputField3Decoration.setVisibility(View.GONE);
-        addTimestampToData.setVisibility(View.GONE);
-        resultNfcWriting.setVisibility(View.GONE);
-    }
-
-    private void inputSchemeText() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a line of text";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter a text line");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        addTimestampToData.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("sample text");
-    }
-
-    private void inputSchemeUri() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with an URI";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter an URI including https://");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("https://");
-    }
-
-    private void inputSchemeTelephoneNumber() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a telephone number";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter a telephone number");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("0049201234567890");
-    }
-
-    private void inputSchemeEmail() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a complete Email";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter an email address for the recipient");
-        inputField2Decoration.setHint("Enter the email subject");
-        inputField3Decoration.setHint("Enter the email body");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        inputField2Decoration.setVisibility(View.VISIBLE);
-        inputField3Decoration.setVisibility(View.VISIBLE);
-        addTimestampToData.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("androidcrypto@gmx.de");
-        inputField2.setText("sample email subject");
-        inputField3.setText("Hello AndroidCrypto,\nThis is a sample mail.");
-    }
-
-    private void inputSchemeStreetview() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a Google streetview link";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter coordinates (comma separated)");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("34.792345,-111.762531");
-    }
-
-    private void inputSchemeCoordinate() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a coordinate";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter coordinates (comma separated)");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("34.792345,-111.762531");
-    }
-
-    private void inputSchemeCoordinateUserinfo() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a coordinate and user information";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter coordinates (comma separated)");
-        inputField2Decoration.setHint("Enter the user information");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        inputField2Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("34.792345,-111.762531");
-        inputField2.setText("Bell Rock Sedona view point");
-    }
-
-    private void inputSchemeAddress() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with an address for Google maps";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter an street with (optional) house number");
-        inputField2Decoration.setHint("Enter the zip code");
-        inputField3Decoration.setHint("Enter the city");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        inputField2Decoration.setVisibility(View.VISIBLE);
-        inputField3Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("Selmastr 5");
-        inputField2.setText("45127");
-        inputField3.setText("Essen");
-    }
-
-    private void inputSchemeGoogleNavigation() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with a target address for Google navigation";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter an street with (optional) house number");
-        inputField2Decoration.setHint("Enter the zip code");
-        inputField3Decoration.setHint("Enter the city");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        inputField2Decoration.setVisibility(View.VISIBLE);
-        inputField3Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("Selmastr 5");
-        inputField2.setText("45127");
-        inputField3.setText("Essen");
-    }
-
-
-    private void inputSchemeApplication() {
-        hideAllInputFields();
-        String description = "writes an NDEF record with an application to start";
-        typeDescription.setText(description);
-        inputField1Decoration.setHint("Enter a packet name");
-        typeDescription.setVisibility(View.VISIBLE);
-        inputField1Decoration.setVisibility(View.VISIBLE);
-        resultNfcWriting.setVisibility(View.VISIBLE);
-        inputField1.setText("com.inkwired.droidinfo");
+    private void setEditTextMaxLength(EditText et, int maxLength) {
+        et.setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxLength)});
     }
 
     /**
@@ -331,159 +171,184 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
 
     @Override
     public void onTagDiscovered(Tag tag) {
-// Read and or write to Tag here to the appropriate Tag Technology type class
+
+        // Read and or write to Tag here to the appropriate Tag Technology type class
         // in this example the card should be an Ndef Technology Type
 
-        Ndef mNdef = Ndef.get(tag);
+        System.out.println("NFC tag discovered");
+        playSinglePing();
+        outputString = "";
 
-        // Check that it is an Ndef capable card
-        if (mNdef != null) {
+        requireActivity().runOnUiThread(() -> {
+            resultNfcWriting.setText("");
+        });
 
-            NdefMessage ndefMessage;
-            NdefRecord ndefRecord1;
-            // nfc ndef writing depends on the type
-            String choiceString = autoCompleteTextView.getText().toString();
-            String inputData1 = inputField1.getText().toString();
-            boolean addTimestamp = addTimestampToData.isChecked();
-            switch (choiceString) {
-                case "Text": {
-                    String data = inputData1;
-                    if (addTimestamp) data = data + " " + Utils.getTimestamp();
-                    ndefRecord1 = NdefRecord.createTextRecord("en", data);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "URI": {
-                    String data = inputData1;
-                    ndefRecord1 = NdefRecord.createUri(data);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Telephone number": {
-                    String data = inputData1;
-                    String completeData = "tel:" + data;
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Email": {
-                    String data1 = inputData1;
-                    String data2 = inputField2.getText().toString();
-                    String data3 = inputField3.getText().toString();
-                    String completeData = "mailto:" + Uri.encode(data1) + "?subject=" +
-                            Uri.encode(data2);
-                    if (addTimestamp) completeData = completeData + Uri.encode(" " + Utils.getTimestamp());
-                    completeData = completeData + "&body=" + Uri.encode(data3);
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "StreetView": {
-                    String data = inputData1;
-                    String completeData = "google.streetview:cbll=" + data;
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Coordinate": {
-                    String data = inputData1;
-                    String completeData = "geo:" + data;
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Coordinate userinfo": {
-                    String data1 = inputData1;
-                    String data2 = Uri.encode(inputField2.getText().toString());
-                    String completeData = "geo:0,0?q=" + data1 + "(" + data2 + ")";
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Address": {
-                    String data1 = Uri.encode(inputData1);
-                    String data2 = Uri.encode(inputField2.getText().toString());
-                    String data3 = Uri.encode(inputField3.getText().toString());
-                    String completeData = "geo:0,0?q=" + data1 + "+" + data2 + "+" + data3;
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Google navigation": {
-                    String data1 = Uri.encode(inputData1);
-                    String data2 = Uri.encode(inputField2.getText().toString());
-                    String data3 = Uri.encode(inputField3.getText().toString());
-                    String completeData = "google.navigation:q=" + data1 + "+" + data2 + "+" + data3;
-                    ndefRecord1 = NdefRecord.createUri(completeData);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
-                case "Application": {
-                    String data = inputData1;
-                    ndefRecord1 = NdefRecord.createApplicationRecord(data);
-                    ndefMessage = new NdefMessage(ndefRecord1);
-                    break;
-                }
+        // you should have checked that this device is capable of working with Mifare Classic tags, otherwise you receive an exception
 
-                default:
-                    throw new IllegalStateException("Unexpected value: " + choiceString);
-            }
-
-            // the tag is written here
-            try {
-                mNdef.connect();
-
-                // check that the tag is writable
-                if (!mNdef.isWritable()) {
-                    showMessage("NFC tag is not writable");
-                    return;
-                }
-
-                // check that the tag has sufficiant memory to write the ndef message
-                int ndefMaxSize = mNdef.getMaxSize();
-                int messageSize = ndefMessage.toByteArray().length;
-                if (messageSize > ndefMaxSize) {
-                    showMessage("Message is too large to write on NFC tag");
-                    return;
-                }
-
-                mNdef.writeNdefMessage(ndefMessage);
-                // Success if got to here
-                showMessage("write to NFC success, total message size is " + messageSize);
-            } catch (FormatException e) {
-                showMessage("FormatException: " + e.getMessage());
-                // if the NDEF Message to write is malformed
-            } catch (TagLostException e) {
-                showMessage("TagLostException: " + e.getMessage());
-                // Tag went out of range before operations were complete
-            } catch (IOException e) {
-                // if there is an I/O failure, or the operation is cancelled
-                showMessage("IOException: " + e.getMessage() + " I'm trying to format the tag... please try again");
-                // try to format the tag
-                formatNdef(tag);
-            } finally {
-                // Be nice and try and close the tag to
-                // Disable I/O operations to the tag from this TagTechnology object, and release resources.
-                try {
-                    mNdef.close();
-                } catch (IOException e) {
-                    // if there is an I/O failure, or the operation is cancelled
-                    showMessage("IOException on close: " + e.getMessage());
-                }
-            }
-            doVibrate(getActivity());
-            playSinglePing(getContext());
-        } else {
-            showMessage("mNdef is null, not an NDEF formatted tag, try to format the tag");
-            // trying to format the tag
-            formatNdef(tag);
+        String sendData = dataToSend.getText().toString();
+        if (addTimestampToData.isChecked()) sendData = sendData + getTimestamp();
+        if (TextUtils.isEmpty(sendData)) {
+            writeToUiAppend("Please enter some data to write on tag. Aborted");
+            writeToUiFinal(resultNfcWriting);
+            return;
         }
+
+        MifareClassic mfc = MifareClassic.get(tag);
+        if (mfc == null) {
+            writeToUiAppend("The tag is not readable with Mifare Classic classes, sorry");
+            writeToUiFinal(resultNfcWriting);
+            return;
+        }
+
+        // get card details
+        int ttype = mfc.getType();
+        StringBuilder sb = new StringBuilder();
+        sb.append("MifareClassic type: ").append(ttype).append("\n");
+        int tagSize = mfc.getSize();
+        sb.append("MifareClassic size: ").append(tagSize).append("\n");
+        int sectorCount = mfc.getSectorCount();
+        sb.append("MifareClassic sector count: ").append(sectorCount).append("\n");
+        int blockCount = mfc.getBlockCount();
+        sb.append("MifareClassic block count: ").append(blockCount).append("\n");
+
+        sb.append("APP_DIRECTORY: ").append(bytesToHexNpe(MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)).append("\n");
+        sb.append("KEY_DEFAULT  : ").append(bytesToHexNpe(MifareClassic.KEY_DEFAULT)).append("\n");
+        sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
+
+        writeToUiAppend(sb.toString());
+
+        try {
+            mfc.connect();
+
+            if (mfc.isConnected()) {
+
+                // get sector to write
+                String choiceString = autoCompleteTextView.getText().toString();
+                sectorToWrite = Integer.parseInt(choiceString);
+
+                // get the block to write and split the data into block of maximal 16 bytes long
+                byte[] dtw = new byte[48]; // todo for sector 0 just 32 bytes and 2 blocks
+                System.arraycopy(sendData.getBytes(StandardCharsets.UTF_8), 0, dtw, 0, sendData.getBytes(StandardCharsets.UTF_8).length); // this is an array filled up with 0x00
+                byte[] block1 = Arrays.copyOfRange(dtw, 0, 16);
+                byte[] block2 = Arrays.copyOfRange(dtw, 16, 32);
+                byte[] block3 = Arrays.copyOfRange(dtw, 32, 48);
+                writeToUiAppend("block  length: " + dtw.length + " data: " + bytesToHexNpe(dtw));
+                writeToUiAppend("block1 length: " + block1.length + " data: " + bytesToHexNpe(block1));
+                writeToUiAppend("block2 length: " + block2.length + " data: " + bytesToHexNpe(block2));
+                writeToUiAppend("block3 length: " + block3.length + " data: " + bytesToHexNpe(block3));
+
+                // write to tag
+                boolean writeSuccess = writeMifareSector(mfc, sectorToWrite, block1, block2, block3);
+                writeToUiAppend("Tried to write data to tag, success ? : " + writeSuccess);
+
+                mfc.close();
+            }
+        } catch (IOException e) {
+            writeToUiAppend("IOException on connection: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        doVibrate(getActivity());
+        playDoublePing();
+        writeToUiFinal(resultNfcWriting);
+
+    }
+
+    private boolean writeMifareSector(MifareClassic mif, int secCnt, byte[] bd1, byte[] bd2,
+                                      byte[] bd3) {
+        byte[][] returnBytes = new byte[3][64];
+        byte[] keyABytes = null;
+        byte[] keyBBytes = null;
+        byte[] dataBytes = new byte[64];
+        boolean isAuthenticated = false;
+        // try to authenticate with known keys - no brute force
+        Log.d(TAG, "");
+        Log.d(TAG, "writeMifareSector " + secCnt);
+        try {
+
+            // this method is just using the KEY_DEFAULT_KEY for keyB
+            if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
+                keyBBytes = MifareClassic.KEY_DEFAULT.clone();
+                Log.d(TAG, "Auth success with B KEY_DEFAULT");
+                isAuthenticated = true;
+            }
+
+
+            /*
+            // construct is there to run the break command
+            boolean c = true;          // true by default
+            while ( c == true ) {       // only loop while true
+                c = false;                  // kill loop on first iteration
+
+                if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
+                    keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
+                    Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
+                    isAuthenticated = true;
+                    break;
+                    // there are 3 default keys available
+                    // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
+                    // MifareClassic.KEY_DEFAULT:                      ffffffffffff
+                    // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
+                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
+                    keyBBytes = MifareClassic.KEY_DEFAULT.clone();
+                    Log.d(TAG, "Auth success with B KEY_DEFAULT");
+                    isAuthenticated = true;
+                    break;
+                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
+                    keyBBytes = MifareClassic.KEY_NFC_FORUM.clone();
+                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
+                    isAuthenticated = true;
+                    break;
+                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
+                    keyABytes = MifareClassic.KEY_DEFAULT.clone();
+                    Log.d(TAG, "Auth success with A KEY_DEFAULT");
+                    isAuthenticated = true;
+                    break;
+                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
+                    keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
+                    isAuthenticated = true;
+                    Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
+                    break;
+                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
+                    keyBBytes = MifareClassic.KEY_NFC_FORUM;
+                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
+                    isAuthenticated = true;
+                    break;
+                } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
+                    keyABytes = hexStringToByteArray("4D57414C5648");
+                    Log.d(TAG, "Auth success with A Crowne Plaza key");
+                    isAuthenticated = true;
+                    break;
+                    //4D57414C5648
+                } else {
+                    //return null;
+                    Log.d(TAG, "NO Auth success");
+                }
+            }
+
+             */
+            // get the blockindex
+            int block_index = mif.sectorToBlock(secCnt);
+            // get block in sector
+            int blocksInSector = mif.getBlockCountInSector(secCnt);
+            int blockInSectorCount = 0;
+            mif.writeBlock((block_index + blockInSectorCount), bd1);
+            blockInSectorCount = 1;
+            mif.writeBlock((block_index + blockInSectorCount), bd2);
+            blockInSectorCount = 2;
+            mif.writeBlock((block_index + blockInSectorCount), bd3);
+        } catch (IOException e) {
+            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     private void formatNdef(Tag tag) {
         // trying to format the tag
         NdefFormatable format = NdefFormatable.get(tag);
-        if(format != null){
+        if (format != null) {
             try {
                 format.connect();
                 format.format(new NdefMessage(new NdefRecord(NdefRecord.TNF_EMPTY, null, null, null)));
@@ -498,11 +363,42 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
                 showMessage("Failed Format");
                 e.printStackTrace();
             }
-        }
-        else {
+        } else {
             showMessage("Tag not formattable or already formatted to Ndef");
         }
     }
+
+    /**
+     * Sound files downloaded from Material Design Sounds
+     * https://m2.material.io/design/sound/sound-resources.html
+     */
+    private void playSinglePing() {
+        MediaPlayer mp = MediaPlayer.create(getContext(), R.raw.notification_decorative_02);
+        mp.start();
+    }
+
+    private void playDoublePing() {
+        MediaPlayer mp = MediaPlayer.create(getContext(), R.raw.notification_decorative_01);
+        mp.start();
+    }
+
+    private void writeToUiAppend(String message) {
+        //System.out.println(message);
+        outputString = outputString + message + "\n";
+    }
+
+    private void writeToUiFinal(final TextView textView) {
+        if (textView == (TextView) resultNfcWriting) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    textView.setText(outputString);
+                    System.out.println(outputString); // print the data to console
+                }
+            });
+        }
+    }
+
 
     private void showMessage(String message) {
         getActivity().runOnUiThread(() -> {
