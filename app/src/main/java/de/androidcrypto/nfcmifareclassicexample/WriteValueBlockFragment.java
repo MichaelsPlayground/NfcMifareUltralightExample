@@ -27,6 +27,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,6 +62,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     SwitchMaterial swIncrementValueBlock;
     AutoCompleteTextView autoCompleteTextView;
     com.google.android.material.textfield.TextInputLayout dataToSendLayout, incrementValueBlockLayout;
+
 
     private NfcAdapter mNfcAdapter;
     private int sectorToWrite;
@@ -113,6 +115,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         swIncrementValueBlock = getView().findViewById(R.id.swIncrementValueBlock);
         incrementValueBlock = getView().findViewById(R.id.etWriteIncrement);
         incrementValueBlockLayout = getView().findViewById(R.id.etWriteIncrementLayout);
+
 
         String[] type = new String[]{
                 "1", "2", "3", "4", "5", "6", "7", "8", "9",
