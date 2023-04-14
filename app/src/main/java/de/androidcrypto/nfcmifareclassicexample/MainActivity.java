@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (itemId == R.id.write) {
             selectedFragment = new WriteFragment();
         } else if (itemId == R.id.write_ciphertext) {
-            selectedFragment = new WriteCiphertextFragment();
+            selectedFragment = new WriteValueBlockFragment();
         }
 
         /*
