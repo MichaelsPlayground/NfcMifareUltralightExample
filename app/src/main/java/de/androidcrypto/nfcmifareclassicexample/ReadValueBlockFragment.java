@@ -500,38 +500,39 @@ promark keys
                     } // for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
                     writeToUiAppend("collected all sectors in sectorMc1kModels: " + sectorMc1kModels.size());
 
-                    // at his point we check all blocks for ValueBlocks
 
-                    // convert all blockData to hexString
-                    // isValueBlock on String
-                    // collect an Array of lines
-                    // output to table
-                    // see DumpEditor - decodeValueBlocks()
-                    // see ValueBlocksToInt - onCreate
 
-                    int numberOfRecords = sectorMc1kModels.size();
-                    requireActivity().runOnUiThread(() -> {
-                        mLayout.setBackgroundColor(getResources().getColor(R.color.dark_gray));
-                    });
+                } // for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
+                // at his point we check all blocks for ValueBlocks
 
-                    for (int sector = 0; sector < numberOfRecords; sector++) {
-                        SectorMc1kModel s1m = sectorMc1kModels.get(sector);
-                        if (s1m.isReadableSector()) {
-                            // work only for readable sectors
-                            // only blocks 0, 1 and 2 are checked for a ValueBlock
-                            String line0 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 0, 16));
-                            String line1 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 16, 32));
-                            String line2 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 32, 48));
-                            //if (isValueBlock(line0)) valueBlockList.add(generateListEntry(sector, (4 * sector) + 0, line0));
-                            if (isValueBlock(line0))
-                                valueBlockList.add(generateListEntry(sector, 0, line0));
-                            if (isValueBlock(line1))
-                                valueBlockList.add(generateListEntry(sector, 1, line1));
-                            if (isValueBlock(line2))
-                                valueBlockList.add(generateListEntry(sector, 2, line2));
-                        }
+                // convert all blockData to hexString
+                // isValueBlock on String
+                // collect an Array of lines
+                // output to table
+                // see DumpEditor - decodeValueBlocks()
+                // see ValueBlocksToInt - onCreate
+
+                int numberOfRecords = sectorMc1kModels.size();
+                requireActivity().runOnUiThread(() -> {
+                    mLayout.setBackgroundColor(getResources().getColor(R.color.dark_gray));
+                });
+
+                for (int sector = 0; sector < numberOfRecords; sector++) {
+                    SectorMc1kModel s1m = sectorMc1kModels.get(sector);
+                    if (s1m.isReadableSector()) {
+                        // work only for readable sectors
+                        // only blocks 0, 1 and 2 are checked for a ValueBlock
+                        String line0 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 0, 16));
+                        String line1 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 16, 32));
+                        String line2 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 32, 48));
+                        //if (isValueBlock(line0)) valueBlockList.add(generateListEntry(sector, (4 * sector) + 0, line0));
+                        if (isValueBlock(line0))
+                            valueBlockList.add(generateListEntry(sector, 0, line0));
+                        if (isValueBlock(line1))
+                            valueBlockList.add(generateListEntry(sector, 1, line1));
+                        if (isValueBlock(line2))
+                            valueBlockList.add(generateListEntry(sector, 2, line2));
                     }
-
                 }
             }
 
@@ -545,6 +546,7 @@ promark keys
         writeToUiAppend("The tag contains numberOfValueBlocks: " + valueBlockList.size());
         if (valueBlockList.size() > 0) {
             for (int i = 0; i < valueBlockList.size(); i++) {
+            //for (int i = 0; i < 3; i++) {
                 System.out.println("*** i : " + i + " ***");
                 // bring the data to a nice view
                 String[] parts = valueBlockList.get(i).split(":");
