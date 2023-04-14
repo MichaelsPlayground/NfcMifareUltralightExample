@@ -35,10 +35,10 @@ import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link ReadFragment#newInstance} factory method to
+ * Use the {@link ReadValueBlockFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback {
+public class ReadValueBlockFragment extends Fragment implements NfcAdapter.ReaderCallback {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -50,7 +50,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     private String mParam1;
     private String mParam2;
 
-    public ReadFragment() {
+    public ReadValueBlockFragment() {
         // Required empty public constructor
     }
 
@@ -63,8 +63,8 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
      * @return A new instance of fragment ReceiveFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static ReadFragment newInstance(String param1, String param2) {
-        ReadFragment fragment = new ReadFragment();
+    public static ReadValueBlockFragment newInstance(String param1, String param2) {
+        ReadValueBlockFragment fragment = new ReadValueBlockFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -73,7 +73,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     }
 
     TextView readResult;
-    Button checkAccessBytes, dumpColored;
+    Button checkAccessBytes;
     private View loadingLayout;
     private String outputString = ""; // used for the UI output
     private NfcAdapter mNfcAdapter;
@@ -99,7 +99,6 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         readResult = getView().findViewById(R.id.tvReadResult);
         checkAccessBytes = getView().findViewById(R.id.btnCheckAccessBytes);
-        dumpColored = getView().findViewById(R.id.btnDumpColored);
         loadingLayout = getView().findViewById(R.id.loading_layout);
 
         checkAccessBytes.setOnClickListener(new View.OnClickListener() {
@@ -140,80 +139,6 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             }
         });
 
-        dumpColored.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (sectorMc1kModels != null) {
-                    int numberOfSectors = sectorMc1kModels.size();
-                    readResult.setBackgroundColor( getResources().getColor(R.color.dark_gray));
-                    SpannableStringBuilder ssb = new SpannableStringBuilder();
-                    for (int i = 0; i < numberOfSectors; i++) {
-                        SpannableString sector = colorString("Sector: " + String.valueOf(i),
-                                ContextCompat.getColor(getContext(), R.color.blue));
-                        ssb.append(sector).append("\n");
-                        SectorMc1kModel sectorMc1kModel = sectorMc1kModels.get(i);
-                        if (sectorMc1kModel.isReadableSector()) {
-                            byte[] block0 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 0, 16);
-                            byte[] block1 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 16, 32);
-                            byte[] block2 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 32, 48);
-                            SpannableString spStr0;
-                            if (sectorMc1kModel.isSector0()) {
-                                spStr0 = colorDataBlock(bytesToHexNpe(block0), true);
-                            } else {
-                                spStr0 = colorDataBlock(bytesToHexNpe(block0), false);
-                            }
-                            SpannableString spStr1 = colorDataBlock(bytesToHexNpe(block1), false);
-                            SpannableString spStr2 = colorDataBlock(bytesToHexNpe(block2), false);
-                            SpannableString spStr3 = colorSectorTrailer(bytesToHexNpe(sectorMc1kModel.getAccessBlock()));
-                            ssb.append(spStr0).append("\n");
-                            ssb.append(spStr1).append("\n");
-                            ssb.append(spStr2).append("\n");
-                            ssb.append(spStr3).append("\n"); // trailer
-                        } else {
-                            // sector was not readable
-                            SpannableString error = colorString("sector was not readable: " + String.valueOf(i),
-                                    ContextCompat.getColor(getContext(), R.color.red));
-                            ssb.append(error).append("\n");
-                            ssb.append("sector was not readable").append("\n");
-                        }
-                        ssb.append("\n");
-                    }
-                    // caption
-                    // Color caption.
-                    SpannableString keyA = colorString("KeyA",
-                            ContextCompat.getColor(getContext(), R.color.light_green));
-                    SpannableString keyB =  colorString("KeyB",
-                            ContextCompat.getColor(getContext(), R.color.dark_green));
-                    SpannableString ac = colorString("ACs",
-                            ContextCompat.getColor(getContext(), R.color.orange));
-                    SpannableString uidAndManuf = colorString("UID & ManuInfo",
-                            ContextCompat.getColor(getContext(), R.color.purple));
-                    SpannableString vb = colorString("ValueBlock",
-                            ContextCompat.getColor(getContext(), R.color.yellow));
-                    SpannableString sep = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    SpannableString sep2 = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    SpannableString sep3 = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    SpannableString sep4 = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    ssb.append(uidAndManuf).append(sep).append(vb).append(sep2).append(keyA).append(sep3).append(keyB).append(sep4).append(ac).append("\n");
-                    /*
-                    ssb.append(TextUtils.concat(uidAndManuf, sep,
-                            vb, sep, keyA, sep, keyB, sep, ac)).append("\n");
-
-                     */
-                    /*
-                    ssb.append(TextUtils.concat(uidAndManuf, " | ",
-                            vb, " | ", keyA, " | ", keyB, " | ", ac)).append("\n");
-                    */
-                    readResult.setText (ssb);
-
-
-                }
-            }
-        });
     }
 
     /**
@@ -325,7 +250,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_read, container, false);
+        return inflater.inflate(R.layout.fragment_read_value_block, container, false);
     }
 
     //public static String GetAccessConditionsDescription(byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
@@ -560,16 +485,22 @@ promark keys
                     sectorMc1kModels.add(sectorMc1kModel);
                     if (sectorMc1kModel != null) {
                         writeToUiAppend(sectorMc1kModel.dump());
+
+                        // at his point we check all blocks for ValueBlocks
+                        // todo
+                        // convert all blockData to hexString
+                        // isValueBlock on String
+                        // collect an Array of lines
+                        // output to table
+                        // see DumpEditor - decodeValueBlocks()
+                        // see CalueBlocksToInt - onCreate
+
+
                     }
                 } // for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
                 writeToUiAppend("collected all sectors in sectorMc1kModels: " + sectorMc1kModels.size());
             }
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    dumpColored.setEnabled(true);
-                }
-            });
+
             mfc.close();
 
         } catch (IOException e) {

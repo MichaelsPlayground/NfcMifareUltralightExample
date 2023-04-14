@@ -3,6 +3,7 @@ package de.androidcrypto.nfcmifareclassicexample;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.bytesToHexNpe;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.doVibrate;
 import static de.androidcrypto.nfcmifareclassicexample.Utils.getTimestamp;
+import static de.androidcrypto.nfcmifareclassicexample.Utils.hexStringToByteArray;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -86,9 +87,6 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         fragment.setArguments(args);
         return fragment;
     }
-
-    // AID is setup in apduservice.xml
-    // original AID: F0394148148100
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -294,8 +292,8 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
                     // todo check for AccessBytes before writing
 
-                    // write to tag
-                    boolean writeSuccess = writeMifareSector(mfc, sectorToWrite, zeroValue, new byte[16], new byte[16]);
+                    // write to tag - 3 counterBlocks
+                    boolean writeSuccess = writeMifareSector(mfc, sectorToWrite, zeroValue, zeroValue, zeroValue);
                     writeToUiAppend("Tried to write data to tag, success ? : " + writeSuccess);
                 }
                 mfc.close();
@@ -312,7 +310,10 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     }
 
     private boolean incrementMifareSector(MifareClassic mif, int secCnt, int blockCnt, int incrValue) {
-
+        if (!isAcFactorySetting(mif, secCnt)) {
+            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
+            return false;
+        }
         // todo sanity checks
         boolean isAuthenticated = false;
         // try to authenticate with known keys - no brute force
@@ -329,62 +330,6 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
                 Log.d(TAG, "NO Auth success");
                 return false;
             }
-
-
-
-            /*
-            // construct is there to run the break command
-            boolean c = true;          // true by default
-            while ( c == true ) {       // only loop while true
-                c = false;                  // kill loop on first iteration
-
-                if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
-                    isAuthenticated = true;
-                    break;
-                    // there are 3 default keys available
-                    // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
-                    // MifareClassic.KEY_DEFAULT:                      ffffffffffff
-                    // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM.clone();
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyABytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    isAuthenticated = true;
-                    Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM;
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
-                    keyABytes = hexStringToByteArray("4D57414C5648");
-                    Log.d(TAG, "Auth success with A Crowne Plaza key");
-                    isAuthenticated = true;
-                    break;
-                    //4D57414C5648
-                } else {
-                    //return null;
-                    Log.d(TAG, "NO Auth success");
-                }
-            }
-
-             */
             // get the blockindex
             int block_index = mif.sectorToBlock(secCnt);
 
@@ -401,9 +346,12 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     }
 
     private boolean decrementMifareSector(MifareClassic mif, int secCnt, int blockCnt, int incrValue) {
-
+        if (!isAcFactorySetting(mif, secCnt)) {
+            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
+            return false;
+        }
         // todo sanity checks
-        boolean isAuthenticated = false;
+
         // try to authenticate with known keys - no brute force
         Log.d(TAG, "");
         Log.d(TAG, "writeMifareSector " + secCnt);
@@ -411,72 +359,13 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
             // this method is just using the KEY_DEFAULT_KEY for keyA
             if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-
                 Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                isAuthenticated = true;
             } else {
                 Log.d(TAG, "NO Auth success");
                 return false;
             }
-
-
-
-            /*
-            // construct is there to run the break command
-            boolean c = true;          // true by default
-            while ( c == true ) {       // only loop while true
-                c = false;                  // kill loop on first iteration
-
-                if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
-                    isAuthenticated = true;
-                    break;
-                    // there are 3 default keys available
-                    // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
-                    // MifareClassic.KEY_DEFAULT:                      ffffffffffff
-                    // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM.clone();
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyABytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    isAuthenticated = true;
-                    Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM;
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
-                    keyABytes = hexStringToByteArray("4D57414C5648");
-                    Log.d(TAG, "Auth success with A Crowne Plaza key");
-                    isAuthenticated = true;
-                    break;
-                    //4D57414C5648
-                } else {
-                    //return null;
-                    Log.d(TAG, "NO Auth success");
-                }
-            }
-
-             */
-            // get the blockindex
+            // get the block index
             int block_index = mif.sectorToBlock(secCnt);
-
             // decrease the value block by some amount, if the value is negative make it positive
             if (incrValue < 0) incrValue = incrValue * -1;
             mif.decrement(block_index, incrValue);
@@ -492,81 +381,23 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
     private boolean writeMifareSector(MifareClassic mif, int secCnt, byte[] bd1, byte[] bd2,
                                       byte[] bd3) {
-        byte[][] returnBytes = new byte[3][64];
-        byte[] keyABytes = null;
-        byte[] keyBBytes = null;
-        byte[] dataBytes = new byte[64];
-        boolean isAuthenticated = false;
-        // try to authenticate with known keys - no brute force
+        if (!isAcFactorySetting(mif, secCnt)) {
+            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
+            return false;
+        }
+        // try to authenticate with known key - no brute force
         Log.d(TAG, "");
-        Log.d(TAG, "writeMifareSector " + secCnt);
+        Log.d(TAG, "writeMifareSector for ValueBlock " + secCnt);
         try {
-
-            // this method is just using the KEY_DEFAULT_KEY for keyB
-            if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                isAuthenticated = true;
+            // this method is just using the KEY_DEFAULT_KEY for keyA
+            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
+                Log.d(TAG, "Auth success with A KEY_DEFAULT");
             }
 
-
-            /*
-            // construct is there to run the break command
-            boolean c = true;          // true by default
-            while ( c == true ) {       // only loop while true
-                c = false;                  // kill loop on first iteration
-
-                if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
-                    isAuthenticated = true;
-                    break;
-                    // there are 3 default keys available
-                    // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
-                    // MifareClassic.KEY_DEFAULT:                      ffffffffffff
-                    // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM.clone();
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyABytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    isAuthenticated = true;
-                    Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM;
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
-                    keyABytes = hexStringToByteArray("4D57414C5648");
-                    Log.d(TAG, "Auth success with A Crowne Plaza key");
-                    isAuthenticated = true;
-                    break;
-                    //4D57414C5648
-                } else {
-                    //return null;
-                    Log.d(TAG, "NO Auth success");
-                }
-            }
-
-             */
-            // get the blockindex
+            // get the block index
             int block_index = mif.sectorToBlock(secCnt);
             // get block in sector
-            int blocksInSector = mif.getBlockCountInSector(secCnt);
+            //int blocksInSector = mif.getBlockCountInSector(secCnt);
             int blockInSectorCount = 0;
             mif.writeBlock((block_index + blockInSectorCount), bd1);
             blockInSectorCount = 1;
@@ -581,30 +412,39 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         return true;
     }
 
-    private void formatNdef(Tag tag) {
-        // trying to format the tag
-        NdefFormatable format = NdefFormatable.get(tag);
-        if (format != null) {
-            try {
-                format.connect();
-                format.format(new NdefMessage(new NdefRecord(NdefRecord.TNF_EMPTY, null, null, null)));
-                format.close();
-                showMessage("Tag formatted, try again to write on tag");
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                showMessage("Failed to connect");
-                e.printStackTrace();
-            } catch (FormatException e) {
-                // TODO Auto-generated catch block
-                showMessage("Failed Format");
-                e.printStackTrace();
+    /**
+     * reads the sector and checks if the access bytes are factory settings = FF 07 80
+     * @param mif
+     * @param secCnt
+     * @return true is factory setting or false if not
+     */
+    private boolean isAcFactorySetting(MifareClassic mif, int secCnt) {
+        try {
+            // this method is just using the KEY_DEFAULT_KEY for keyA
+            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
+                Log.d(TAG, "Auth success with A KEY_DEFAULT");
+            } else {
+                Log.d(TAG, "NO Auth success");
+                return false;
             }
-        } else {
-            showMessage("Tag not formattable or already formatted to Ndef");
+            // get the blockindex
+            int block_index = mif.sectorToBlock(secCnt);
+            // get block in sector
+            int blocksInSector = mif.getBlockCountInSector(secCnt);
+            // get the data of block 3 = keys & access bytes
+            byte[] block = mif.readBlock((block_index + 3));
+            // get the access bytes
+            byte[] accessBytes = Arrays.copyOfRange(block, 6, 9);
+            // factory setting is FF 07 80
+            if (Arrays.equals(accessBytes, hexStringToByteArray("FF0780"))) return true;
+        } catch (IOException e) {
+            //throw new RuntimeException(e);
+            return false;
         }
+        return false;
     }
 
-    /**
+        /**
      * Sound files downloaded from Material Design Sounds
      * https://m2.material.io/design/sound/sound-resources.html
      */

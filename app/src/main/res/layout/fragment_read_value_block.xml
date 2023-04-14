@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ReadFragment">
+    tools:context=".ReadValueBlockFragment">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -19,7 +19,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="10dp"
-                android:text="@string/header_read"
+                android:text="@string/header_read_value_block"
                 android:textAlignment="center"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -61,13 +61,61 @@
                 android:layout_margin="16dp"
                 android:text="check access bytes" />
 
-            <Button
-                android:id="@+id/btnDumpColored"
+            <TableRow
+                android:id="@+id/tableRowValueBlocksToIntHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="16dp"
-                android:enabled="false"
-                android:text="dump colored data" />
+                android:background="@color/dark_gray"
+                android:padding="3dp">
+
+                <TextView
+                    android:id="@+id/textViewValueBlocksToIntHeader1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="100dp"
+                    android:text="Location"
+                    android:textColor="@color/light_gray" />
+
+                <TextView
+                    android:id="@+id/textViewValueBlocksToIntHeader2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Value"
+                    android:textColor="@color/light_gray" />
+            </TableRow>
+
+            <TableLayout
+                android:id="@+id/tableLayoutValueBlocksToInt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <!-- Fake table Row with the width of the
+                (external, nonscroll) header -->
+
+                <TableRow
+                    android:id="@+id/tableRowValueBlocksToIntHeaderFake"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="3dp">
+
+                    <TextView
+                        android:id="@+id/textViewValueBlocksToIntHeaderFake1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:height="0dp"
+                        android:paddingRight="100dp"
+                        android:text="Location" />
+
+                    <TextView
+                        android:id="@+id/textViewValueBlocksToIntHeaderFake2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:height="0dp"
+                        android:text="Value" />
+
+                </TableRow>
+
+            </TableLayout>
 
             <TextView
                 android:id="@+id/tvReadResult"

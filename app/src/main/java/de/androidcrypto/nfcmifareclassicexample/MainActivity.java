@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (itemId == R.id.read) {
             selectedFragment = new ReadFragment();
         } else if (itemId == R.id.read_ciphertext) {
-            selectedFragment = new ReadCiphertextFragment();
+            selectedFragment = new ReadValueBlockFragment();
         } else if (itemId == R.id.write) {
             selectedFragment = new WriteFragment();
         } else if (itemId == R.id.write_ciphertext) {

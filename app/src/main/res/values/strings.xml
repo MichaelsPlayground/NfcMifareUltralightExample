@@ -12,4 +12,5 @@
     <string name="read_ciphertext_description">If an encryption dataset is found the data is displayed as well and you can enter a passphrase to decrypt the data.</string>
     <string name="action_licenses">Used material and their licenses</string>
     <string name="header_write_value_block">This app works with a Mifare Classic 1K tag for writing a Value Block</string>
+    <string name="header_read_value_block">This app works with a Mifare Classic 1K tag for reading all Value Blocks on the tag</string>
 </resources>
