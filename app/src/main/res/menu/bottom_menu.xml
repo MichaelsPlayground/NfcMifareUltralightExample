@@ -13,8 +13,8 @@
 
     <item
         android:id="@+id/read_ciphertext"
-        android:icon="@drawable/nfc_icon_re2"
-        android:title="Read Encr" />
+        android:icon="@drawable/nfc_icon_rv2"
+        android:title="Read Value" />
 
     <item
         android:id="@+id/write"
@@ -23,6 +23,6 @@
 
     <item
         android:id="@+id/write_ciphertext"
-        android:icon="@drawable/nfc_icon_we2"
-        android:title="Write Encr" />
+        android:icon="@drawable/nfc_icon_wv2"
+        android:title="Write Value" />
 </menu>

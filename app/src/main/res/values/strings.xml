@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">NFC Mifare Classic Example</string>
     <string name="home_description">This application reads and writes data from/to an Mifare Classic 1K NFC tag.</string>
-    <string name="home_fragments">There are 5 icons to click on:\n1 home = this page\n2 read data\n3 read encr = read encrypted data\n4 write data\n5 write encr = write an encrypted data</string>
+    <string name="home_fragments">There are 5 icons to click on:\n1 home = this page\n2 read data\n3 read value = read a value block\n4 write data\n5 write value = write a value block</string>
     <string name="header_read">This app works with a Mifare Classic 1K tag for reading</string>
     <string name="description_read">This example expects a Mifare Classic 1K type tag. The tag should use only the well known keys A and B for authentication.\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="header_read_ciphertext">This app reads an encrypted NDEF message</string>

@@ -27,6 +27,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.NumberPicker;
 import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,12 +61,12 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
     com.google.android.material.textfield.TextInputEditText incrementValueBlock, dataToSend, resultNfcWriting;
     SwitchMaterial swIncrementValueBlock;
-    AutoCompleteTextView autoCompleteTextView;
+    AutoCompleteTextView sectorSelect, blockSelect;
     com.google.android.material.textfield.TextInputLayout dataToSendLayout, incrementValueBlockLayout;
 
 
     private NfcAdapter mNfcAdapter;
-    private int sectorToWrite;
+    private int sectorToWrite, blockToWrite;
     private String outputString = ""; // used for the UI output
 
     public WriteValueBlockFragment() {
@@ -117,26 +118,47 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         incrementValueBlockLayout = getView().findViewById(R.id.etWriteIncrementLayout);
 
 
-        String[] type = new String[]{
+
+        String[] sectorChoices = new String[]{
                 "1", "2", "3", "4", "5", "6", "7", "8", "9",
                 "10", "11", "12", "13", "14", "15"};
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(
+        ArrayAdapter<String> sectorArrayAdapter = new ArrayAdapter<>(
                 getView().getContext(),
                 R.layout.drop_down_item,
-                type);
+                sectorChoices);
 
-        autoCompleteTextView = getView().findViewById(R.id.writeSector);
-        autoCompleteTextView.setText(type[13]);
-        autoCompleteTextView.setAdapter(arrayAdapter);
+        sectorSelect = getView().findViewById(R.id.writeSector);
+        sectorSelect.setText(sectorChoices[13]);
+        sectorSelect.setAdapter(sectorArrayAdapter);
+
+        String[] blockChoices = new String[]{
+                "0", "1", "2"};
+        ArrayAdapter<String> blockArrayAdapter = new ArrayAdapter<>(
+                getView().getContext(),
+                R.layout.drop_down_item,
+                blockChoices);
+
+        blockSelect = getView().findViewById(R.id.writeBlock);
+        blockSelect.setText(blockChoices[0]);
+        blockSelect.setAdapter(blockArrayAdapter);
 
 
         mNfcAdapter = NfcAdapter.getDefaultAdapter(getView().getContext());
 
         // todo work with sector 0, has only 32 bytes of data to write (block 1 + 2)
-        autoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        sectorSelect.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                sectorToWrite = i;
                 Log.d(TAG, "sectorToWrite: " + sectorToWrite);
+            }
+        });
+
+        blockSelect.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                blockToWrite = i;
+                Log.d(TAG, "blockToWrite: " + blockToWrite);
             }
         });
 
@@ -144,26 +166,15 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 // if checked increment, if false just write a blank value block
-
                 if (b) {
                     incrementValueBlockLayout.setVisibility(View.VISIBLE);
-                    //dataToSendLayout.setCounterMaxLength(48 - 20);
-                    //String ds = dataToSend.getText().toString();
-                    //if (ds.length() > 28) dataToSend.setText(ds.substring(0, 28));
-                    //setEditTextMaxLength(dataToSend, 28);
                 } else {
                     incrementValueBlockLayout.setVisibility(View.GONE);
                     incrementValueBlock.setText("1");
-                    //dataToSendLayout.setCounterMaxLength(48);
-                    //setEditTextMaxLength(dataToSend, 48);
                 }
             }
         });
 
-    }
-
-    private void setEditTextMaxLength(EditText et, int maxLength) {
-        et.setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxLength)});
     }
 
     /**
@@ -182,20 +193,10 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
         requireActivity().runOnUiThread(() -> {
             resultNfcWriting.setText("");
+            resultNfcWriting.setBackgroundColor(getResources().getColor(R.color.white));
         });
 
         // you should have checked that this device is capable of working with Mifare Classic tags, otherwise you receive an exception
-/*
-        String sendData = dataToSend.getText().toString();
-        // if (addTimestampToData.isChecked()) sendData = sendData + " " + getTimestamp();
-        if (TextUtils.isEmpty(sendData)) {
-            writeToUiAppend("Please enter some data to write on tag. Aborted");
-            writeToUiFinal(resultNfcWriting);
-            return;
-        }
-
- */
-
         MifareClassic mfc = MifareClassic.get(tag);
         if (mfc == null) {
             writeToUiAppend("The tag is not readable with Mifare Classic classes, sorry");
@@ -219,7 +220,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
 
         writeToUiAppend(sb.toString());
-
+        boolean writeSuccess = false;
         try {
             mfc.connect();
 
@@ -234,15 +235,17 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
                 // https://stackoverflow.com/questions/12208568/how-to-construct-a-value-block-on-mifareclassic-via-android-nfc-api
 
 
-                // get sector to write
-                String choiceString = autoCompleteTextView.getText().toString();
-                sectorToWrite = Integer.parseInt(choiceString);
+                // get sector and block to write
+                String sectorChoiceString = sectorSelect.getText().toString();
+                sectorToWrite = Integer.parseInt(sectorChoiceString);
+                String blockChoiceString = blockSelect.getText().toString();
+                blockToWrite = Integer.parseInt(blockChoiceString);
 
                 // check if we should write a blank value or do an increment
                 if (swIncrementValueBlock.isChecked()) {
                     // increment the value block
                     // write to tag
-                    int blockToWrite = 0;
+                    //int blockToWrite = 0;
                     int incrementValue = Integer.parseInt(incrementValueBlock.getText().toString());
 
                     if (incrementValue == 0) {
@@ -250,14 +253,13 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
                         return;
                     }
                     if (incrementValue > 0) {
-                        boolean writeSuccess = incrementMifareSector(mfc, sectorToWrite, blockToWrite, incrementValue);
+                        writeSuccess = incrementMifareSector(mfc, sectorToWrite, blockToWrite, incrementValue);
                         writeToUiAppend("Tried to increment data to tag, success ? : " + writeSuccess);
                     } else {
-                        boolean writeSuccess = decrementMifareSector(mfc, sectorToWrite, blockToWrite, incrementValue);
+                        writeSuccess = decrementMifareSector(mfc, sectorToWrite, blockToWrite, incrementValue);
                         writeToUiAppend("Tried to decrement data to tag, success ? : " + writeSuccess);
                     }
                 } else {
-
                     // write fixed value block data
                     // construct value block of value zero; "address" byte is set to 0 in this example
                     byte[] zeroValue = {0, 0, 0, 0, (byte) 255, (byte) 255, (byte) 255, (byte) 255, 0, 0, 0, 0, 0, (byte) 255, 0, (byte) 255};
@@ -276,7 +278,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
                     //mifare.increment(blockIndex, value);
                     // result is stored in scratch register inside tag; now write result to block
                     //mifare.transfer(blockIndex);
-                    writeToUiAppend("This is the sample data block written to block 0 of sector 14:\n" + bytesToHexNpe(zeroValue));
+                    writeToUiAppend("This is the sample data block written to block " + blockToWrite+ " of sector " + sectorToWrite + " :\n" + bytesToHexNpe(zeroValue));
 
                 /*
 
@@ -296,7 +298,10 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
                     // todo check for AccessBytes before writing
 
                     // write to tag - 3 counterBlocks
-                    boolean writeSuccess = writeMifareSector(mfc, sectorToWrite, zeroValue, zeroValue, zeroValue);
+                    //boolean writeSuccess = writeMifareSector3Blocks(mfc, sectorToWrite, zeroValue, zeroValue, zeroValue);
+
+                    // write to one block only
+                    writeSuccess = writeMifareSector1Block(mfc, sectorToWrite, blockToWrite, zeroValue);
                     writeToUiAppend("Tried to write data to tag, success ? : " + writeSuccess);
                 }
                 mfc.close();
@@ -309,6 +314,11 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         doVibrate(getActivity());
         playDoublePing();
         writeToUiFinal(resultNfcWriting);
+        if (writeSuccess) {
+            resultNfcWriting.setBackgroundColor(getResources().getColor(R.color.light_background_green));
+        } else {
+            resultNfcWriting.setBackgroundColor(getResources().getColor(R.color.light_background_red));
+        }
 
     }
 
@@ -382,7 +392,34 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         return true;
     }
 
-    private boolean writeMifareSector(MifareClassic mif, int secCnt, byte[] bd1, byte[] bd2,
+    private boolean writeMifareSector1Block(MifareClassic mif, int secCnt, int blockCnt, byte[] blockData) {
+        if (!isAcFactorySetting(mif, secCnt)) {
+            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80), aborted");
+            return false;
+        }
+        // try to authenticate with known key - no brute force
+        Log.d(TAG, "");
+        Log.d(TAG, "writeMifareSector for ValueBlock " + secCnt);
+        try {
+            // this method is just using the KEY_DEFAULT_KEY for keyA
+            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
+                Log.d(TAG, "Auth success with A KEY_DEFAULT");
+            }
+
+            // get the block index
+            int block_index = mif.sectorToBlock(secCnt);
+            // get block in sector
+            mif.writeBlock((block_index + blockCnt), blockData);
+        } catch (IOException e) {
+            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+
+    private boolean writeMifareSector3Blocks(MifareClassic mif, int secCnt, byte[] bd1, byte[] bd2,
                                       byte[] bd3) {
         if (!isAcFactorySetting(mif, secCnt)) {
             Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
