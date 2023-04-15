@@ -347,9 +347,9 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
             int block_index = mif.sectorToBlock(secCnt);
 
             // increase the value block by some amount
-            mif.increment(block_index, incrValue);
+            mif.increment(block_index + blockCnt, incrValue);
             // result is stored in scratch register inside tag; now write result to block
-            mif.transfer(block_index);
+            mif.transfer(block_index + blockCnt);
         } catch (IOException e) {
             Log.e(TAG, "Sector " + secCnt + " Block " + blockCnt + " IOException: " + e.getMessage());
             e.printStackTrace();
@@ -381,9 +381,9 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
             int block_index = mif.sectorToBlock(secCnt);
             // decrease the value block by some amount, if the value is negative make it positive
             if (incrValue < 0) incrValue = incrValue * -1;
-            mif.decrement(block_index, incrValue);
+            mif.decrement(block_index + blockCnt, incrValue);
             // result is stored in scratch register inside tag; now write result to block
-            mif.transfer(block_index);
+            mif.transfer(block_index + blockCnt);
         } catch (IOException e) {
             Log.e(TAG, "Sector " + secCnt + " Block " + blockCnt + " IOException: " + e.getMessage());
             e.printStackTrace();
