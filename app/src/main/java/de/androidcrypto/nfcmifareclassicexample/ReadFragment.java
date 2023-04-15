@@ -498,6 +498,17 @@ promark keys
 
                  */
 
+                // see https://blog.linuxgemini.space/derive-pk-of-nxp-mifare-classic-ev1-ecdsa-signature
+                // r can be read on PM3 with the command hf mf rdbl 69 B 4b791bea7bcc
+                // s can be read on PM3 with the command hf mf rdbl 70 B 4b791bea7bcc
+                byte[] r = readBlock(mfc, 69, hexStringToByteArray("4b791bea7bcc"));
+                byte[] s = readBlock(mfc, 70, hexStringToByteArray("4b791bea7bcc"));
+                if ((r != null) && (s != null)) {
+                    System.out.println("r length:" + r.length + " data: " + bytesToHexNpe(r));
+                    System.out.println("s length:" + s.length + " data: " + bytesToHexNpe(s));
+                } else {
+                    System.out.println("r and/or s are null");
+                }
 
                 for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
                     writeToUiAppend("");
@@ -599,6 +610,28 @@ promark keys
         playDoublePing();
         setLoadingLayoutVisibility(false);
         doVibrate(getActivity());
+    }
+
+    /**
+     * read a single block from mifare classic tag by block
+     * @param mif
+     * @param blockCnt
+     * @param key usually keyB for blocks outside the scope of user accessible memory
+     * @return the content of block (16 bytes) or null if any error occurs
+     */
+    private byte[] readBlock(MifareClassic mif, int blockCnt, byte[] key) {
+        byte[] block;
+        int secCnt = mif.blockToSector(blockCnt);
+        System.out.println("readBlock for block " + blockCnt + " is in sector " + secCnt);
+        try {
+            mif.authenticateSectorWithKeyB(secCnt,key);
+            block = mif.readBlock(blockCnt);
+        } catch (IOException e) {
+            //throw new RuntimeException(e);
+            System.out.println("RuntimeException: " + e.getMessage());
+            return null;
+        }
+        return block;
     }
 
     /**
