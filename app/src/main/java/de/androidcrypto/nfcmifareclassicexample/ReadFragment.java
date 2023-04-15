@@ -428,11 +428,10 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         sb.append("MifareClassic sector count: ").append(sectorCount).append("\n");
         int blockCount = mfc.getBlockCount();
         sb.append("MifareClassic block count: ").append(blockCount).append("\n");
-
-        sb.append("APP_DIRECTORY: ").append(bytesToHexNpe(MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)).append("\n");
-        sb.append("KEY_DEFAULT  : ").append(bytesToHexNpe(MifareClassic.KEY_DEFAULT)).append("\n");
-        sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
-
+        byte[] id = mfc.getTag().getId();
+        sb.append("Tag ID: ").append(bytesToHexNpe(id)).append("\n");
+        String[] techlist = mfc.getTag().getTechList();
+        sb.append("Tag Techlist: ").append(Arrays.toString(techlist));
         writeToUiAppend(sb.toString());
 
 /*
@@ -481,6 +480,25 @@ promark keys
             mfc.connect();
 
             if (mfc.isConnected()) {
+
+                /*
+                // this is manual doing
+                byte[] block64 = mfc.readBlock(64);
+                if (block64 != null) {
+                    System.out.println("block64 length: " + block64.length + " data: " + bytesToHexNpe(block64));
+                } else {
+                    System.out.println("block64 is NULL");
+                }
+                byte[] block65 = mfc.readBlock(65);
+                if (block65 != null) {
+                    System.out.println("block65 length: " + block65.length + " data: " + bytesToHexNpe(block65));
+                } else {
+                    System.out.println("block65 is NULL");
+                }
+
+                 */
+
+
                 for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
                     writeToUiAppend("");
                     // this is the loop for all sectors of a Mifare Classic card
