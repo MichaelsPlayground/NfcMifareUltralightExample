@@ -9,7 +9,7 @@ The Mifare Ultralight family consists of 3 main subtypes:
 2) Mifare Ultralight C: Get the datasheet here MF0ICU2: https://www.nxp.com/docs/en/data-sheet/MF0ICU2.pdf
 3) Mifare Ultralight EV1: Get the datasheet here: https://www.nxp.com/docs/en/data-sheet/MF0ULX1.pdf
 
-All datasheets are available in the docs folder of this repository.
+All datasheets are available in the docs folder of this repository but it is always better to get one from the origin source.
 
 https://www.asiarfid.com/how-to-choose-rfid-mifare-chip.html
 

@@ -29,10 +29,26 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.DESedeKeySpec;
+import javax.crypto.spec.IvParameterSpec;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -135,7 +151,6 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 // a human readable form
 
 
-
                 writeToUiAppend(sb.toString());
                 writeToUiFinal(readResult);
             }
@@ -146,7 +161,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             public void onClick(View view) {
                 if (sectorMc1kModels != null) {
                     int numberOfSectors = sectorMc1kModels.size();
-                    readResult.setBackgroundColor( getResources().getColor(R.color.dark_gray));
+                    readResult.setBackgroundColor(getResources().getColor(R.color.dark_gray));
                     SpannableStringBuilder ssb = new SpannableStringBuilder();
                     for (int i = 0; i < numberOfSectors; i++) {
                         SpannableString sector = colorString("Sector: " + String.valueOf(i),
@@ -183,7 +198,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                     // Color caption.
                     SpannableString keyA = colorString("KeyA",
                             ContextCompat.getColor(getContext(), R.color.light_green));
-                    SpannableString keyB =  colorString("KeyB",
+                    SpannableString keyB = colorString("KeyB",
                             ContextCompat.getColor(getContext(), R.color.dark_green));
                     SpannableString ac = colorString("ACs",
                             ContextCompat.getColor(getContext(), R.color.orange));
@@ -209,7 +224,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                     ssb.append(TextUtils.concat(uidAndManuf, " | ",
                             vb, " | ", keyA, " | ", keyB, " | ", ac)).append("\n");
                     */
-                    readResult.setText (ssb);
+                    readResult.setText(ssb);
 
 
                 }
@@ -219,9 +234,10 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
 
     /**
      * Create a full colored string (representing one block).
-     * @param data Block data as hex string (16 Byte, 32 Chars.).
+     *
+     * @param data   Block data as hex string (16 Byte, 32 Chars.).
      * @param hasUID True if the block is the first block of the entire tag
-     * (Sector 0, Block 0).
+     *               (Sector 0, Block 0).
      * @return A full colored string.
      */
     private SpannableString colorDataBlock(String data, boolean hasUID) {
@@ -249,6 +265,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     /**
      * Create a full colored sector trailer (representing the last block of
      * every sector).
+     *
      * @param data Block data as hex string (16 Byte, 32 Chars.).
      * @return A full colored string.
      */
@@ -278,7 +295,8 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
 
     /**
      * Create a colored string.
-     * @param data The text to be colored.
+     *
+     * @param data  The text to be colored.
      * @param color The color for the text.
      * @return A colored string.
      */
@@ -294,6 +312,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
      * NXP has PDFs describing what value blocks are. Google something
      * like "nxp MIFARE classic value block" if you want to have a
      * closer look.
+     *
      * @param hexString Block data as hex string.
      * @return True if it is a value block. False otherwise.
      */
@@ -331,7 +350,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
 
     //public static String GetAccessConditionsDescription(byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
     public static String GetAccessConditionsDescription(Context context, byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
-        if(sectorAccessBits == null || blockIndex < 0 || blockIndex >= sectorAccessBits[0].length) {
+        if (sectorAccessBits == null || blockIndex < 0 || blockIndex >= sectorAccessBits[0].length) {
             return "";
         }
         int accessBitsNumber = (sectorAccessBits[0][blockIndex] << 2) | (sectorAccessBits[1][blockIndex] << 1) | sectorAccessBits[0][blockIndex];
@@ -344,7 +363,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             int accessCondsResId = R.string.class.getField(accessCondsResIdStr).getInt(null);
             Log.d(TAG, "appContext.getResources().getString(accessCondsResId): " + context.getResources().getString(accessCondsResId));
             return context.getResources().getString(accessCondsResId);
-        } catch(Exception nsfe) {
+        } catch (Exception nsfe) {
             Log.e(TAG, "Exception in GetAccessConditionsDescription: " + nsfe.getMessage());
             return "";
         }
@@ -353,6 +372,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     /**
      * Convert the Access Condition bytes to a matrix containing the
      * resolved C1, C2 and C3 for each block.
+     *
      * @param acBytes The Access Condition bytes (3 byte).
      * @return Matrix of access conditions bits (C1-C3) where the first
      * dimension is the "C" parameter (C1-C3, Index 0-2) and the second
@@ -366,23 +386,23 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         // C3 (Byte 8, 4-7) == ~C3 (Byte 7, 0-3)
         byte[][] acMatrix = new byte[3][4];
         if (acBytes.length > 2 &&
-                (byte)((acBytes[1]>>>4)&0x0F)  ==
-                        (byte)((acBytes[0]^0xFF)&0x0F) &&
-                (byte)(acBytes[2]&0x0F) ==
-                        (byte)(((acBytes[0]^0xFF)>>>4)&0x0F) &&
-                (byte)((acBytes[2]>>>4)&0x0F)  ==
-                        (byte)((acBytes[1]^0xFF)&0x0F)) {
+                (byte) ((acBytes[1] >>> 4) & 0x0F) ==
+                        (byte) ((acBytes[0] ^ 0xFF) & 0x0F) &&
+                (byte) (acBytes[2] & 0x0F) ==
+                        (byte) (((acBytes[0] ^ 0xFF) >>> 4) & 0x0F) &&
+                (byte) ((acBytes[2] >>> 4) & 0x0F) ==
+                        (byte) ((acBytes[1] ^ 0xFF) & 0x0F)) {
             // C1, Block 0-3
             for (int i = 0; i < 4; i++) {
-                acMatrix[0][i] = (byte)((acBytes[1]>>>4+i)&0x01);
+                acMatrix[0][i] = (byte) ((acBytes[1] >>> 4 + i) & 0x01);
             }
             // C2, Block 0-3
             for (int i = 0; i < 4; i++) {
-                acMatrix[1][i] = (byte)((acBytes[2]>>>i)&0x01);
+                acMatrix[1][i] = (byte) ((acBytes[2] >>> i) & 0x01);
             }
             // C3, Block 0-3
             for (int i = 0; i < 4; i++) {
-                acMatrix[2][i] = (byte)((acBytes[2]>>>4+i)&0x01);
+                acMatrix[2][i] = (byte) ((acBytes[2] >>> 4 + i) & 0x01);
             }
             return acMatrix;
         }
@@ -405,17 +425,16 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         sectorMc1kModels = new ArrayList<>();
 
         requireActivity().runOnUiThread(() -> {
-            readResult.setBackgroundColor( getResources().getColor(R.color.white));
+            readResult.setBackgroundColor(getResources().getColor(R.color.white));
             readResult.setText("");
         });
 
         // you should have checked that this device is capable of working with Mifare Ultralight tags, otherwise you receive an exception
 
 
-        MifareUltralight mfc = MifareUltralight.get(tag);
+        MifareUltralight mfu = MifareUltralight.get(tag);
 
-//        MifareClassic mfc = MifareClassic.get(tag);
-        if (mfc == null) {
+        if (mfu == null) {
             writeToUiAppend("The tag is not readable with Mifare Ultralight classes, sorry");
             writeToUiFinal(readResult);
             setLoadingLayoutVisibility(false);
@@ -423,27 +442,27 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         }
 
         // get card details
-        int tagType = mfc.getType();
+        int tagType = mfu.getType();
         StringBuilder sb = new StringBuilder();
         sb.append("MifareUltralight type: ").append(tagType).append("\n");
-        byte[] id = mfc.getTag().getId();
+        byte[] id = mfu.getTag().getId();
         sb.append("Tag ID: ").append(bytesToHexNpe(id)).append("\n");
-        String[] techlist = mfc.getTag().getTechList();
+        String[] techlist = mfu.getTag().getTechList();
         sb.append("Tag Techlist: ").append(Arrays.toString(techlist));
         writeToUiAppend(sb.toString());
 
         // go through all sectors
         try {
-            mfc.connect();
+            mfu.connect();
 
-            if (mfc.isConnected()) {
+            if (mfu.isConnected()) {
 
                 // read block 0
-                byte[] block0 = mfc.readPages(0); // reads 4 pages
+                byte[] block0 = mfu.readPages(0); // reads 4 pages
                 writeToUiAppend(printData("block0", block0));
 
                 try {
-                    byte[] block4 = mfc.transceive(new byte[]{
+                    byte[] block4 = mfu.transceive(new byte[]{
                             (byte) 0x30,                  // READ
                             (byte) (04 & 0x0ff)  // page address
                     });
@@ -455,7 +474,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 }
 
                 try {
-                    byte[] block44 = mfc.readPages(44);
+                    byte[] block44 = mfu.readPages(44);
                     writeToUiAppend(printData("block44", block44));
                 } catch (IOException e) {
                     writeToUiAppend("Block 44 IOException: " + e.getMessage());
@@ -467,14 +486,20 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
 In order to distinguish MIFARE Ultralight, Ultralight C, Ultralight EV1, and NTAG tags, you would first send a GET_VERSION command:
 
 > 60
-If this command succeeds, you know that the tag is an EV1 (or later) tag (e.g. MIFARE Ultralight EV1 or NTAG21x). You can, thus, narrow down the specific tag type by analyzing the resonse to the GET_VERSION command. This will reveal the product type (NTAG or Ultralight EV1) as well as product subtype, product version and storage size (which allows you to determine the exact chip type). See Distinguish NTAG213 from MF0ICU2 for a list of example product identification values.
+If this command succeeds, you know that the tag is an EV1 (or later) tag (e.g. MIFARE Ultralight EV1
+or NTAG21x). You can, thus, narrow down the specific tag type by analyzing the resonse to the GET_VERSION command.
+This will reveal the product type (NTAG or Ultralight EV1) as well as product subtype, product version and storage
+size (which allows you to determine the exact chip type). See Distinguish NTAG213 from MF0ICU2 for a list of example
+product identification values.
 
-If the GET_VERSION command fails, you can assume that it is a first generation tag (MIFARE Ultralight, Ultralight C, NTAG203). You can, thus, narrow down the specific tag type by sending an AUTHENTICATE (part 1) command:
+If the GET_VERSION command fails, you can assume that it is a first generation tag (MIFARE Ultralight, Ultralight C,
+NTAG203). You can, thus, narrow down the specific tag type by sending an AUTHENTICATE (part 1) command:
 
 > 1A 00
 If this command succeeds, you know that the tag is MIFARE Ultralight C.
 
-If this command fails, you can assume that the tag is either Ultralight or NTAG203. In order to distinguish between MIFARE Ultralight and NTAG203, you can try to read pages that do not exist on Ultralight (e.g. read page 41):
+If this command fails, you can assume that the tag is either Ultralight or NTAG203. In order to distinguish between
+MIFARE Ultralight and NTAG203, you can try to read pages that do not exist on Ultralight (e.g. read page 41):
 
 > 30 29
 Share
@@ -490,43 +515,73 @@ Michael Roland
                 boolean isUltralightC = false;
                 boolean isUltralightEv1 = false;
 
-                byte[] getVersionResp = getVersion(mfc);
-                byte[] doAuthResp = doAuthenticate(mfc);
+                // 425245414b4d454946594f5543414e21
+                //byte[] defaultKey = hexStringToByteArray("425245414b4d454946594f5543414e21"); // "BREAKMEIFYOUCAN!", 16 bytes long
+                byte[] defaultKey = hexStringToByteArray("00000000000000000000000000000000"); // "BREAKMEIFYOUCAN!", 16 bytes long
+                try {
+                    authenticate(mfu, defaultKey);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                // checks for distinguishing the correct type of card
+                byte[] getVersionResp = getVersion(mfu);
+                byte[] doAuthResp = doAuthenticate(mfu);
                 writeToUiAppend(printData("getVersionResp", getVersionResp));
                 writeToUiAppend(printData("doAuthResp", doAuthResp));
 
-                // set above depending on tag type
-                if (tagType == MifareUltralight.TYPE_ULTRALIGHT) {
-                    // tagType = 1
-                    isUltralight = true;
-                    storageSize = 64;
-                }
-                if (tagType == MifareUltralight.TYPE_ULTRALIGHT_C) {
-                    // tagType = 2
-                    isUltralightC = true;
-                    storageSize = 192;
-                }
-                // check if it is a Ultralight EV1 tag by asking the Get Version (neither Ultralight nor Ultralight C know about this command
-
-                byte[] getVersionResponse = null;
-                try {
-                    byte[] getVersionCommand = new byte[]{(byte) 0x60};
-                    getVersionResponse = mfc.transceive(getVersionCommand);
-                } catch (IOException e) {
-                    writeToUiAppend("getVersion IOException: " + e.getMessage());
-                }
-                if (getVersionResponse != null) {
-                    writeToUiAppend("getVersionResponse length: " + getVersionResponse.length + " data: " + Utils.bytesToHexNpe(getVersionResponse));
+                // if getVersionResponse is not null it is an Ultralight EV1 or later
+                if (getVersionResp != null) {
                     isUltralightEv1 = true;
                     // storage size is in byte 6, 0b or 0e
-                    if (getVersionResponse[6] == (byte) 0x0b) storageSize = 48;
-                    if (getVersionResponse[6] == (byte) 0x0e) storageSize = 128;
+                    if (getVersionResp[6] == (byte) 0x0b) storageSize = 48;
+                    if (getVersionResp[6] == (byte) 0x0e) storageSize = 128;
+                    Log.d(TAG, "Tag is an Mifare Ultralight EV1 with a storage size of " + storageSize + " bytes");
                 } else {
-                    writeToUiAppend("getVersionResponse is NULL");
+                    // now we are checking if getVersionResponse is not null meaning an Ultralight-C tag
+                    if (doAuthResp != null) {
+                        isUltralightC = true;
+                        storageSize = 192;
+                        Log.d(TAG, "Tag is an Mifare Ultralight-C with a storage size of " + storageSize + " bytes");
+                    } else {
+                        // the tag is an Ultralight tag
+                        isUltralight = true;
+                        storageSize = 64;
+                        Log.d(TAG, "Tag is an Mifare Ultralight with a storage size of " + storageSize + " bytes");
+                    }
                 }
 
-                writeToUiAppend("storageSize is " + storageSize + " bytes");
+                // tag identification
+                if (isUltralight) {
+                    writeToUiAppend("The tag is an Mifare Ultralight tag with a storage size of " + storageSize + " bytes");
+                }
+                if (isUltralightC) {
+                    writeToUiAppend("The tag is an Mifare Ultralight-C tag with a storage size of " + storageSize + " bytes");
+                }
+                if (isUltralightEv1) {
+                    writeToUiAppend("The tag is an Mifare Ultralight EV1 tag with a storage size of " + storageSize + " bytes");
+                }
 
+                if (storageSize == 0) {
+                    writeToUiAppend("As the storage size is 0 the tag seems to be unknown to the app. I'm aborting, sorry.");
+                }
+/*
+                // 425245414b4d454946594f5543414e21
+                byte[] defaultKey = hexStringToByteArray("425245414b4d454946594f5543414e21"); // "BREAKMEIFYOUCAN!", 16 bytes long
+                try {
+                    authenticate(mfu, defaultKey);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+*/
+
+                writeToUiAppend("");
+                int pagesToRead = storageSize / 4;
+                byte[][] pagesComplete = new byte[pagesToRead][];
+                for (int i = 0; i < pagesToRead; i++) {
+                    pagesComplete[i] = readPage(mfu, i);
+                    writeToUiAppend(printData("page " + i, pagesComplete[i]));
+                }
 
 
 
@@ -635,7 +690,7 @@ Michael Roland
                     dumpColored.setEnabled(true);
                 }
             });
-            mfc.close();
+            mfu.close();
 
         } catch (IOException e) {
             writeToUiAppend("IOException on connection: " + e.getMessage());
@@ -648,6 +703,95 @@ Michael Roland
         doVibrate(getActivity());
     }
 
+
+    /**
+     * auth code taken from  https://stackoverflow.com/a/44640515/8166854
+     * Note: this code uses Apache Commons Lang.
+     * // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+     * implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
+     */
+    public void authenticate(MifareUltralight mfu, byte[] key) throws Exception {
+        System.out.println("AUTHENTICATE");
+        //byte[] encRndB = transmitRaw(new byte[] { 0x1A, 0x00 });
+        byte[] encRndB = mfu.transceive((new byte[] { 0x1A, 0x00 }));
+        if((encRndB.length!=9)||(encRndB[0]!= (byte) 0xAF)) {
+            throw new RuntimeException("Invalid response!");
+        }
+        encRndB=Arrays.copyOfRange(encRndB, 1, 9);
+        System.out.println(" - EncRndB: " + bytesToHexNpe(encRndB));
+        byte[] rndB = desDecrypt(key, encRndB);
+        System.out.println(" - RndB: " + bytesToHexNpe(rndB));
+        byte[] rndBrot = rotateLeft(rndB);
+        System.out.println(" - RndBrot: " + bytesToHexNpe(rndBrot));
+        byte[] rndA = new byte[8];
+        generateRandom(rndA);
+        System.out.println(" - RndA: " + bytesToHexNpe(rndA));
+        //byte[] encRndArotPrime = transmitRaw(ArrayUtils.addAll(new byte[] {(byte) 0xAF}, desEncrypt(key, ArrayUtils.addAll(rndA, rndBrot))));
+        byte[] encRndArotPrime;
+        try {
+            encRndArotPrime = mfu.transceive((ArrayUtils.addAll(new byte[]{(byte) 0xAF}, desEncrypt(key, ArrayUtils.addAll(rndA, rndBrot)))));
+        } catch (IOException e) {
+            Log.e(TAG, "IOEx on second auth round");
+            return;
+        }
+
+        if((encRndArotPrime.length!=9)||(encRndArotPrime[0]!=0x00)) {
+            throw new RuntimeException("Invalid response!");
+        }
+        encRndArotPrime=Arrays.copyOfRange(encRndArotPrime, 1, 9);
+        System.out.println(" - EncRndArot': " + bytesToHexNpe(encRndArotPrime));
+        byte[] rndArotPrime = desDecrypt(key, encRndArotPrime);
+        System.out.println(" - RndArot': " + bytesToHexNpe(rndArotPrime));
+        if(!Arrays.equals(rotateLeft(rndA), rndArotPrime)) {
+            throw new RuntimeException("Card authentication failed");
+        } else {
+            Log.d(TAG, "Card authentication success");
+            System.out.println("Card authentication success");
+        }
+    }
+
+    protected static SecureRandom rnd = new SecureRandom();
+    protected static void generateRandom(byte[] rndA) {
+        rnd.nextBytes(rndA);
+    }
+
+    protected byte[] desEncrypt(byte[] key, byte[] data) {
+        return performDes(Cipher.ENCRYPT_MODE, key, data);
+    }
+    protected byte[] desDecrypt(byte[] key, byte[] data) {
+        return performDes(Cipher.DECRYPT_MODE, key, data);
+    }
+    private byte[] iv = new byte[8];
+    protected byte[] performDes(int opMode, byte[] key, byte[] data) {
+        try {
+            Cipher des = Cipher.getInstance("DESede/CBC/NoPadding");
+            SecretKeyFactory desKeyFactory = SecretKeyFactory.getInstance("DESede");
+            Key desKey = desKeyFactory.generateSecret(new DESedeKeySpec(ArrayUtils.addAll(key, Arrays.copyOf(key, 8))));
+            des.init(opMode, desKey, new IvParameterSpec(iv));
+            byte[] ret = des.doFinal(data);
+            if(opMode== Cipher.ENCRYPT_MODE) {
+                iv=Arrays.copyOfRange(ret, ret.length-8, ret.length);
+            } else {
+                iv=Arrays.copyOfRange(data, data.length-8, data.length);
+            }
+            return ret;
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
+                 InvalidKeySpecException |
+                 IllegalBlockSizeException |
+                 BadPaddingException |
+                 InvalidAlgorithmParameterException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected static byte[] rotateLeft(byte[] in) {
+        return ArrayUtils.add(Arrays.copyOfRange(in, 1, 8), in[0]);
+    }
+
+    /**
+     * auth code ends
+     */
+
     private byte[] getVersion(MifareUltralight mfu) {
         byte[] getVersionResponse = null;
         try {
@@ -655,16 +799,19 @@ Michael Roland
             getVersionResponse = mfu.transceive(getVersionCommand);
             return getVersionResponse;
         } catch (IOException e) {
-            writeToUiAppend("getVersion unsupported, IOException: " + e.getMessage());
+            Log.d(TAG, "getVersion unsupported, IOException: " + e.getMessage());
+            //writeToUiAppend("getVersion unsupported, IOException: " + e.getMessage());
         }
-        // this is just an advice - if an error occurs - close the connenction and reconnect the tag
+        // this is just an advice - if an error occurs - close the connection and reconnect the tag
         // https://stackoverflow.com/a/37047375/8166854
         try {
             mfu.close();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             mfu.connect();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return null;
     }
 
@@ -682,16 +829,18 @@ Michael Roland
         // https://stackoverflow.com/a/37047375/8166854
         try {
             mfu.close();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             mfu.connect();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return null;
     }
 
 
     private String printData(String dataName, byte[] data) {
-        int dataLength = 0;
+        int dataLength;
         String dataString = "";
         if (data == null) {
             dataLength = 0;
@@ -710,11 +859,37 @@ Michael Roland
         return sb.toString();
     }
 
+    private byte[] readPage(MifareUltralight mfu, int page) {
+        byte[] response = null;
+        try {
+            response = mfu.transceive(new byte[]{
+                    (byte) 0x30,           // READ a page is 4 bytes long
+                    (byte) (page & 0x0ff)  // page address
+            });
+            return response;
+        } catch (IOException e) {
+            Log.d(TAG, "on page " + page + " readPage failed with IOException: " + e.getMessage());
+            //writeToUiAppend("on page " + page + " readPage failed with IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connection and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
     /**
      * read a single block from mifare classic tag by block
+     *
      * @param mif
      * @param blockCnt
-     * @param key usually keyB for blocks outside the scope of user accessible memory
+     * @param key      usually keyB for blocks outside the scope of user accessible memory
      * @return the content of block (16 bytes) or null if any error occurs
      */
     private byte[] readBlock(MifareClassic mif, int blockCnt, byte[] key) {
@@ -722,7 +897,7 @@ Michael Roland
         int secCnt = mif.blockToSector(blockCnt);
         System.out.println("readBlock for block " + blockCnt + " is in sector " + secCnt);
         try {
-            mif.authenticateSectorWithKeyB(secCnt,key);
+            mif.authenticateSectorWithKeyB(secCnt, key);
             block = mif.readBlock(blockCnt);
         } catch (IOException e) {
             //throw new RuntimeException(e);
@@ -734,6 +909,7 @@ Michael Roland
 
     /**
      * read mifare classic card sector by sector
+     *
      * @param mif
      * @param secCnt 0 to 15 (for Mifare Classic 1K) or in general sectorCount
      * @return a double byte array
@@ -749,7 +925,7 @@ Michael Roland
         byte[] dataBytes = new byte[64];
         boolean isAuthenticated = false;
         // try to authenticate with known keys - no brute force
-        Log.d(TAG,"");
+        Log.d(TAG, "");
         Log.d(TAG, "readMifareSector " + secCnt);
         try {
             if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
