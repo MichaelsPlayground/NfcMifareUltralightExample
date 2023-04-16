@@ -105,6 +105,9 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     private boolean isUltralight = false;
     private boolean isUltralightC = false;
     private boolean isUltralightEv1 = false;
+    private int counter0 = 0;
+    private int counter1 = 0;
+    private int counter2 = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -475,6 +478,13 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                     writeToUiAppend(printData("page " + i, pagesComplete[i]));
                 }
 
+                byte[] counter0B = getCounter(mfu, 0);
+                byte[] counter1B = getCounter(mfu, 1);
+                byte[] counter2B = getCounter(mfu, 2);
+                writeToUiAppend(printData("counter0", counter0B));
+                writeToUiAppend(printData("counter10=-", counter1B));
+                writeToUiAppend(printData("counter2", counter2B));
+
                 // 425245414b4d454946594f5543414e21
                 byte[] defaultKey = hexStringToByteArray("425245414b4d454946594f5543414e21"); // "BREAKMEIFYOUCAN!", 16 bytes long
                 byte[] defaultKeyZero = hexStringToByteArray("00000000000000000000000000000000"); // "..zeroes...", 16 bytes long
@@ -840,6 +850,31 @@ Michael Roland
             return getAuthresponse;
         } catch (IOException e) {
             writeToUiAppend("doAuthentication unsupported, IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connenction and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
+    private byte[] getCounter(MifareUltralight mfu, int counterNumber) {
+        if ((counterNumber < 0) | (counterNumber > 2)) {
+            return null;
+        }
+        byte[] response = null;
+        try {
+            byte[] getCounterCommand = new byte[]{(byte) 0x39, (byte) (counterNumber & 0x0ff)};
+            response = mfu.transceive(getCounterCommand);
+            return response;
+        } catch (IOException e) {
+            //writeToUiAppend("doAuthentication unsupported, IOException: " + e.getMessage());
         }
         // this is just an advice - if an error occurs - close the connenction and reconnect the tag
         // https://stackoverflow.com/a/37047375/8166854
