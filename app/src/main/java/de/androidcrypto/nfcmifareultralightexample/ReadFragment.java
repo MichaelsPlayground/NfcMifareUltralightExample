@@ -100,6 +100,11 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     private static final int REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE = 100;
     Context contextSave;
     List<SectorMc1kModel> sectorMc1kModels;
+    private byte[][] pagesComplete;
+    private int pagesToRead;
+    private boolean isUltralight = false;
+    private boolean isUltralightC = false;
+    private boolean isUltralightEv1 = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -159,35 +164,40 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         dumpColored.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (sectorMc1kModels != null) {
-                    int numberOfSectors = sectorMc1kModels.size();
+                if (pagesComplete != null) {
+                    int numberOfPages = pagesToRead;
                     readResult.setBackgroundColor(getResources().getColor(R.color.dark_gray));
                     SpannableStringBuilder ssb = new SpannableStringBuilder();
-                    for (int i = 0; i < numberOfSectors; i++) {
+                    for (int i = 0; i < numberOfPages; i++) {
                         SpannableString sector = colorString("Sector: " + String.valueOf(i),
                                 ContextCompat.getColor(getContext(), R.color.blue));
                         ssb.append(sector).append("\n");
-                        SectorMc1kModel sectorMc1kModel = sectorMc1kModels.get(i);
-                        if (sectorMc1kModel.isReadableSector()) {
-                            byte[] block0 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 0, 16);
-                            byte[] block1 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 16, 32);
-                            byte[] block2 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 32, 48);
+                        byte[] page = pagesComplete[i];
+                        if (page != null) {
                             SpannableString spStr0;
-                            if (sectorMc1kModel.isSector0()) {
-                                spStr0 = colorDataBlock(bytesToHexNpe(block0), true);
-                            } else {
-                                spStr0 = colorDataBlock(bytesToHexNpe(block0), false);
+                            if (i == 0) {
+                                spStr0 = colorDataBlock(bytesToHexNpe(page), true);
+                            } else if (i == 1) {
+                                spStr0 = colorDataBlock(bytesToHexNpe(page), true);
+                            } else if (i == 2) {
+                                spStr0 = colorString(bytesToHexNpe(page),
+                                        ContextCompat.getColor(getContext(), R.color.yellow));
+                            } else if (i == 3) {
+                                spStr0 = colorString(bytesToHexNpe(page),
+                                        ContextCompat.getColor(getContext(), R.color.light_green));
                             }
-                            SpannableString spStr1 = colorDataBlock(bytesToHexNpe(block1), false);
-                            SpannableString spStr2 = colorDataBlock(bytesToHexNpe(block2), false);
-                            SpannableString spStr3 = colorSectorTrailer(bytesToHexNpe(sectorMc1kModel.getAccessBlock()));
+
+
+                            else {
+                                spStr0 = colorDataBlock(bytesToHexNpe(page), false);
+                            }
                             ssb.append(spStr0).append("\n");
-                            ssb.append(spStr1).append("\n");
-                            ssb.append(spStr2).append("\n");
-                            ssb.append(spStr3).append("\n"); // trailer
+                            //ssb.append(spStr1).append("\n");
+                            //ssb.append(spStr2).append("\n");
+                            //ssb.append(spStr3).append("\n"); // trailer
                         } else {
-                            // sector was not readable
-                            SpannableString error = colorString("sector was not readable: " + String.valueOf(i),
+                            // page was not readable
+                            SpannableString error = colorString("page was not readable: " + String.valueOf(i),
                                     ContextCompat.getColor(getContext(), R.color.red));
                             ssb.append(error).append("\n");
                             ssb.append("sector was not readable").append("\n");
@@ -457,28 +467,41 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
 
             if (mfu.isConnected()) {
 
-                // read block 0
-                byte[] block0 = mfu.readPages(0); // reads 4 pages
-                writeToUiAppend(printData("block0", block0));
-
-                try {
-                    byte[] block4 = mfu.transceive(new byte[]{
-                            (byte) 0x30,                  // READ
-                            (byte) (04 & 0x0ff)  // page address
-                    });
-
-                    //byte[] block4 = mfc.readPages(4);
-                    writeToUiAppend(printData("block4", block4));
-                } catch (IOException e) {
-                    writeToUiAppend("Block 4 IOException: " + e.getMessage());
+                // we are trying to read 48 pages (maximum for Ultralight-C) although Ultralight and Ultralight EV-1 are smaller
+                pagesToRead = 48;
+                pagesComplete = new byte[pagesToRead][];
+                for (int i = 0; i < pagesToRead; i++) {
+                    pagesComplete[i] = readPage(mfu, i);
+                    writeToUiAppend(printData("page " + i, pagesComplete[i]));
                 }
 
+                // 425245414b4d454946594f5543414e21
+                byte[] defaultKey = hexStringToByteArray("425245414b4d454946594f5543414e21"); // "BREAKMEIFYOUCAN!", 16 bytes long
+                byte[] defaultKeyZero = hexStringToByteArray("00000000000000000000000000000000"); // "..zeroes...", 16 bytes long
+                // NXP default key: BREAKMEIFYOUCAN! (16 bytes)
+                byte[] mifareULCDefaultKey = { (byte) 0x49, (byte) 0x45,
+                        (byte) 0x4D, (byte) 0x4B, (byte) 0x41, (byte) 0x45,
+                        (byte) 0x52, (byte) 0x42, (byte) 0x21, (byte) 0x4E,
+                        (byte) 0x41, (byte) 0x43, (byte) 0x55, (byte) 0x4F,
+                        (byte) 0x59, (byte) 0x46 };
                 try {
-                    byte[] block44 = mfu.readPages(44);
-                    writeToUiAppend(printData("block44", block44));
-                } catch (IOException e) {
-                    writeToUiAppend("Block 44 IOException: " + e.getMessage());
+                    authenticate(mfu, defaultKey);
+                } catch (Exception e) {
+                    //throw new RuntimeException(e);
+                    // this is just an advice - if an error occurs - close the connection and reconnect the tag
+                    // https://stackoverflow.com/a/37047375/8166854
+                    try {
+                        mfu.close();
+                    } catch (Exception e1) {
+                    }
+                    try {
+                        mfu.connect();
+                    } catch (Exception e2) {
+                    }
                 }
+                byte[] page04 = readPage(mfu, 04);
+                writeToUiAppend(printData("page04", page04));
+
 
                 // https://stackoverflow.com/questions/45545493/distinguish-different-types-of-mifare-ultralight
                 // https://stackoverflow.com/questions/37002498/distinguish-ntag213-from-mf0icu2
@@ -511,18 +534,11 @@ Michael Roland's user avatar
 Michael Roland
                  */
                 int storageSize = 0;
-                boolean isUltralight = false;
-                boolean isUltralightC = false;
-                boolean isUltralightEv1 = false;
+                isUltralight = false;
+                isUltralightC = false;
+                isUltralightEv1 = false;
 
-                // 425245414b4d454946594f5543414e21
-                //byte[] defaultKey = hexStringToByteArray("425245414b4d454946594f5543414e21"); // "BREAKMEIFYOUCAN!", 16 bytes long
-                byte[] defaultKey = hexStringToByteArray("00000000000000000000000000000000"); // "BREAKMEIFYOUCAN!", 16 bytes long
-                try {
-                    authenticate(mfu, defaultKey);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+
 
                 // checks for distinguishing the correct type of card
                 byte[] getVersionResp = getVersion(mfu);
@@ -534,19 +550,27 @@ Michael Roland
                 if (getVersionResp != null) {
                     isUltralightEv1 = true;
                     // storage size is in byte 6, 0b or 0e
-                    if (getVersionResp[6] == (byte) 0x0b) storageSize = 48;
-                    if (getVersionResp[6] == (byte) 0x0e) storageSize = 128;
+                    if (getVersionResp[6] == (byte) 0x0b) {
+                        storageSize = 64; // 48 bytes user memory
+                        pagesToRead = storageSize / 4;
+                    }
+                    if (getVersionResp[6] == (byte) 0x0e) {
+                        storageSize = 144; // 128 bytes user memory
+                        pagesToRead = storageSize / 4;
+                    }
                     Log.d(TAG, "Tag is an Mifare Ultralight EV1 with a storage size of " + storageSize + " bytes");
                 } else {
                     // now we are checking if getVersionResponse is not null meaning an Ultralight-C tag
                     if (doAuthResp != null) {
                         isUltralightC = true;
                         storageSize = 192;
+                        pagesToRead = storageSize / 4;
                         Log.d(TAG, "Tag is an Mifare Ultralight-C with a storage size of " + storageSize + " bytes");
                     } else {
                         // the tag is an Ultralight tag
                         isUltralight = true;
                         storageSize = 64;
+                        pagesToRead = storageSize / 4;
                         Log.d(TAG, "Tag is an Mifare Ultralight with a storage size of " + storageSize + " bytes");
                     }
                 }
@@ -574,14 +598,6 @@ Michael Roland
                     throw new RuntimeException(e);
                 }
 */
-
-                writeToUiAppend("");
-                int pagesToRead = storageSize / 4;
-                byte[][] pagesComplete = new byte[pagesToRead][];
-                for (int i = 0; i < pagesToRead; i++) {
-                    pagesComplete[i] = readPage(mfu, i);
-                    writeToUiAppend(printData("page " + i, pagesComplete[i]));
-                }
 
 
 
