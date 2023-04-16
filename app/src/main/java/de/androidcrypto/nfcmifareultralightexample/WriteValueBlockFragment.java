@@ -50,7 +50,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
     com.google.android.material.textfield.TextInputEditText incrementValueBlock, dataToSend, resultNfcWriting;
     SwitchMaterial swIncrementValueBlock;
-    AutoCompleteTextView sectorSelect, blockSelect;
+
     com.google.android.material.textfield.TextInputLayout dataToSendLayout, incrementValueBlockLayout;
 
 
@@ -107,49 +107,8 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         incrementValueBlockLayout = getView().findViewById(R.id.etWriteIncrementLayout);
 
 
-
-        String[] sectorChoices = new String[]{
-                "1", "2", "3", "4", "5", "6", "7", "8", "9",
-                "10", "11", "12", "13", "14", "15"};
-        ArrayAdapter<String> sectorArrayAdapter = new ArrayAdapter<>(
-                getView().getContext(),
-                R.layout.drop_down_item,
-                sectorChoices);
-
-        sectorSelect = getView().findViewById(R.id.writeSector);
-        sectorSelect.setText(sectorChoices[13]);
-        sectorSelect.setAdapter(sectorArrayAdapter);
-
-        String[] blockChoices = new String[]{
-                "0", "1", "2"};
-        ArrayAdapter<String> blockArrayAdapter = new ArrayAdapter<>(
-                getView().getContext(),
-                R.layout.drop_down_item,
-                blockChoices);
-
-        blockSelect = getView().findViewById(R.id.writeBlock);
-        blockSelect.setText(blockChoices[0]);
-        blockSelect.setAdapter(blockArrayAdapter);
-
-
         mNfcAdapter = NfcAdapter.getDefaultAdapter(getView().getContext());
 
-        // todo work with sector 0, has only 32 bytes of data to write (block 1 + 2)
-        sectorSelect.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                sectorToWrite = i;
-                Log.d(TAG, "sectorToWrite: " + sectorToWrite);
-            }
-        });
-
-        blockSelect.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                blockToWrite = i;
-                Log.d(TAG, "blockToWrite: " + blockToWrite);
-            }
-        });
 
         swIncrementValueBlock.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -225,9 +184,9 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
 
                 // get sector and block to write
-                String sectorChoiceString = sectorSelect.getText().toString();
+                String sectorChoiceString = "a";
                 sectorToWrite = Integer.parseInt(sectorChoiceString);
-                String blockChoiceString = blockSelect.getText().toString();
+                String blockChoiceString = "b";
                 blockToWrite = Integer.parseInt(blockChoiceString);
 
                 // check if we should write a blank value or do an increment

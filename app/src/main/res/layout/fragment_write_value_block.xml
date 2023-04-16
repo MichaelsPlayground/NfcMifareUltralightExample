@@ -31,38 +31,58 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
+        <RadioGroup
+            android:id="@+id/rbCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/rbCounterNoIncrease"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:checked="true"
+                android:text="no counter increase, just reading values" />
+
+            <RadioButton
+                android:id="@+id/rbIncreaseCounter0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:text="increase counter 0" />
+
+            <RadioButton
+                android:id="@+id/rbIncreraseCounter1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:text="increase counter 1" />
+
+            <RadioButton
+                android:id="@+id/rbIncreaseCounter2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:text="increase counter 2" />
+        </RadioGroup>
+
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="8dp"
-            android:hint="Sector">
+            android:hint="increase value">
 
-            <AutoCompleteTextView
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCounterIncreaseValue"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/writeSector"
-                android:inputType="none">
-            </AutoCompleteTextView>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="8dp"
-            android:hint="Block">
-
-            <AutoCompleteTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/writeBlock"
-                android:inputType="none">
-            </AutoCompleteTextView>
+                android:ellipsize="end"
+                android:focusable="false"
+                android:text="1"
+                tools:ignore="KeyboardInaccessibleWidget" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.switchmaterial.SwitchMaterial
@@ -73,7 +93,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="8dp"
             android:checked="false"
-            android:text="increment an existing ValueBlock"/>
+            android:text="increment an existing ValueBlock" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/etWriteIncrementLayout"
@@ -128,8 +148,8 @@
                 android:id="@+id/etMainResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusable="false"
                 android:ellipsize="end"
+                android:focusable="false"
                 android:text="no NFC tag detected"
                 tools:ignore="KeyboardInaccessibleWidget" />
         </com.google.android.material.textfield.TextInputLayout>
