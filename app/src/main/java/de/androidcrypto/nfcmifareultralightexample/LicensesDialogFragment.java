@@ -1,4 +1,4 @@
-package de.androidcrypto.nfcmifareclassicexample;
+package de.androidcrypto.nfcmifareultralightexample;
 
 import android.app.AlertDialog;
 import android.app.Dialog;

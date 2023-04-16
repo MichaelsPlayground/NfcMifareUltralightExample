@@ -1,4 +1,4 @@
-package de.androidcrypto.nfcmifareclassicexample;
+package de.androidcrypto.nfcmifareultralightexample;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;

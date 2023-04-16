@@ -1,23 +1,16 @@
-package de.androidcrypto.nfcmifareclassicexample;
+package de.androidcrypto.nfcmifareultralightexample;
 
-import static de.androidcrypto.nfcmifareclassicexample.Utils.bytesToHexNpe;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.doVibrate;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.getTimestamp;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.hexStringToByteArray;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.bytesToHexNpe;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.doVibrate;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.hexStringToByteArray;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
-import android.nfc.FormatException;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
-import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.InputFilter;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,9 +19,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.NumberPicker;
-import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,7 +29,6 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**

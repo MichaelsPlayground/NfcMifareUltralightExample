@@ -1,8 +1,8 @@
-package de.androidcrypto.nfcmifareclassicexample;
+package de.androidcrypto.nfcmifareultralightexample;
 
-import static de.androidcrypto.nfcmifareclassicexample.Utils.bytesToHexNpe;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.doVibrate;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.hexStringToByteArray;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.bytesToHexNpe;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.doVibrate;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.hexStringToByteArray;
 
 import android.content.Context;
 import android.content.Intent;
@@ -13,7 +13,6 @@ import android.nfc.tech.MifareClassic;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.SpannableString;
-import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
@@ -21,6 +20,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,16 +30,17 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link ReadFragment#newInstance} factory method to
+ * Use the {@link ReadValueBlockFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback {
+public class ReadValueBlockFragment extends Fragment implements NfcAdapter.ReaderCallback {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -50,7 +52,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     private String mParam1;
     private String mParam2;
 
-    public ReadFragment() {
+    public ReadValueBlockFragment() {
         // Required empty public constructor
     }
 
@@ -63,8 +65,8 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
      * @return A new instance of fragment ReceiveFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static ReadFragment newInstance(String param1, String param2) {
-        ReadFragment fragment = new ReadFragment();
+    public static ReadValueBlockFragment newInstance(String param1, String param2) {
+        ReadValueBlockFragment fragment = new ReadValueBlockFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -73,7 +75,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     }
 
     TextView readResult;
-    Button checkAccessBytes, dumpColored;
+    Button checkAccessBytes;
     private View loadingLayout;
     private String outputString = ""; // used for the UI output
     private NfcAdapter mNfcAdapter;
@@ -83,6 +85,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     private static final int REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE = 100;
     Context contextSave;
     List<SectorMc1kModel> sectorMc1kModels;
+    private TableLayout mLayout;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -99,8 +102,9 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         readResult = getView().findViewById(R.id.tvReadResult);
         checkAccessBytes = getView().findViewById(R.id.btnCheckAccessBytes);
-        dumpColored = getView().findViewById(R.id.btnDumpColored);
         loadingLayout = getView().findViewById(R.id.loading_layout);
+        mLayout = getView().findViewById(
+                R.id.tableLayoutValueBlocksToInt);
 
         checkAccessBytes.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -134,93 +138,19 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 // a human readable form
 
 
-
                 writeToUiAppend(sb.toString());
                 writeToUiFinal(readResult);
             }
         });
 
-        dumpColored.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (sectorMc1kModels != null) {
-                    int numberOfSectors = sectorMc1kModels.size();
-                    readResult.setBackgroundColor( getResources().getColor(R.color.dark_gray));
-                    SpannableStringBuilder ssb = new SpannableStringBuilder();
-                    for (int i = 0; i < numberOfSectors; i++) {
-                        SpannableString sector = colorString("Sector: " + String.valueOf(i),
-                                ContextCompat.getColor(getContext(), R.color.blue));
-                        ssb.append(sector).append("\n");
-                        SectorMc1kModel sectorMc1kModel = sectorMc1kModels.get(i);
-                        if (sectorMc1kModel.isReadableSector()) {
-                            byte[] block0 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 0, 16);
-                            byte[] block1 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 16, 32);
-                            byte[] block2 = Arrays.copyOfRange(sectorMc1kModel.getBlockData(), 32, 48);
-                            SpannableString spStr0;
-                            if (sectorMc1kModel.isSector0()) {
-                                spStr0 = colorDataBlock(bytesToHexNpe(block0), true);
-                            } else {
-                                spStr0 = colorDataBlock(bytesToHexNpe(block0), false);
-                            }
-                            SpannableString spStr1 = colorDataBlock(bytesToHexNpe(block1), false);
-                            SpannableString spStr2 = colorDataBlock(bytesToHexNpe(block2), false);
-                            SpannableString spStr3 = colorSectorTrailer(bytesToHexNpe(sectorMc1kModel.getAccessBlock()));
-                            ssb.append(spStr0).append("\n");
-                            ssb.append(spStr1).append("\n");
-                            ssb.append(spStr2).append("\n");
-                            ssb.append(spStr3).append("\n"); // trailer
-                        } else {
-                            // sector was not readable
-                            SpannableString error = colorString("sector was not readable: " + String.valueOf(i),
-                                    ContextCompat.getColor(getContext(), R.color.red));
-                            ssb.append(error).append("\n");
-                            ssb.append("sector was not readable").append("\n");
-                        }
-                        ssb.append("\n");
-                    }
-                    // caption
-                    // Color caption.
-                    SpannableString keyA = colorString("KeyA",
-                            ContextCompat.getColor(getContext(), R.color.light_green));
-                    SpannableString keyB =  colorString("KeyB",
-                            ContextCompat.getColor(getContext(), R.color.dark_green));
-                    SpannableString ac = colorString("ACs",
-                            ContextCompat.getColor(getContext(), R.color.orange));
-                    SpannableString uidAndManuf = colorString("UID & ManuInfo",
-                            ContextCompat.getColor(getContext(), R.color.purple));
-                    SpannableString vb = colorString("ValueBlock",
-                            ContextCompat.getColor(getContext(), R.color.yellow));
-                    SpannableString sep = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    SpannableString sep2 = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    SpannableString sep3 = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    SpannableString sep4 = colorString(" | ",
-                            ContextCompat.getColor(getContext(), R.color.white));
-                    ssb.append(uidAndManuf).append(sep).append(vb).append(sep2).append(keyA).append(sep3).append(keyB).append(sep4).append(ac).append("\n");
-                    /*
-                    ssb.append(TextUtils.concat(uidAndManuf, sep,
-                            vb, sep, keyA, sep, keyB, sep, ac)).append("\n");
-
-                     */
-                    /*
-                    ssb.append(TextUtils.concat(uidAndManuf, " | ",
-                            vb, " | ", keyA, " | ", keyB, " | ", ac)).append("\n");
-                    */
-                    readResult.setText (ssb);
-
-
-                }
-            }
-        });
     }
 
     /**
      * Create a full colored string (representing one block).
-     * @param data Block data as hex string (16 Byte, 32 Chars.).
+     *
+     * @param data   Block data as hex string (16 Byte, 32 Chars.).
      * @param hasUID True if the block is the first block of the entire tag
-     * (Sector 0, Block 0).
+     *               (Sector 0, Block 0).
      * @return A full colored string.
      */
     private SpannableString colorDataBlock(String data, boolean hasUID) {
@@ -248,6 +178,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     /**
      * Create a full colored sector trailer (representing the last block of
      * every sector).
+     *
      * @param data Block data as hex string (16 Byte, 32 Chars.).
      * @return A full colored string.
      */
@@ -277,7 +208,8 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
 
     /**
      * Create a colored string.
-     * @param data The text to be colored.
+     *
+     * @param data  The text to be colored.
      * @param color The color for the text.
      * @return A colored string.
      */
@@ -293,6 +225,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
      * NXP has PDFs describing what value blocks are. Google something
      * like "nxp MIFARE classic value block" if you want to have a
      * closer look.
+     *
      * @param hexString Block data as hex string.
      * @return True if it is a value block. False otherwise.
      */
@@ -325,12 +258,12 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_read, container, false);
+        return inflater.inflate(R.layout.fragment_read_value_block, container, false);
     }
 
     //public static String GetAccessConditionsDescription(byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
     public static String GetAccessConditionsDescription(Context context, byte[][] sectorAccessBits, int blockIndex, boolean isSectorTrailer) {
-        if(sectorAccessBits == null || blockIndex < 0 || blockIndex >= sectorAccessBits[0].length) {
+        if (sectorAccessBits == null || blockIndex < 0 || blockIndex >= sectorAccessBits[0].length) {
             return "";
         }
         int accessBitsNumber = (sectorAccessBits[0][blockIndex] << 2) | (sectorAccessBits[1][blockIndex] << 1) | sectorAccessBits[0][blockIndex];
@@ -343,7 +276,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             int accessCondsResId = R.string.class.getField(accessCondsResIdStr).getInt(null);
             Log.d(TAG, "appContext.getResources().getString(accessCondsResId): " + context.getResources().getString(accessCondsResId));
             return context.getResources().getString(accessCondsResId);
-        } catch(Exception nsfe) {
+        } catch (Exception nsfe) {
             Log.e(TAG, "Exception in GetAccessConditionsDescription: " + nsfe.getMessage());
             return "";
         }
@@ -352,6 +285,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
     /**
      * Convert the Access Condition bytes to a matrix containing the
      * resolved C1, C2 and C3 for each block.
+     *
      * @param acBytes The Access Condition bytes (3 byte).
      * @return Matrix of access conditions bits (C1-C3) where the first
      * dimension is the "C" parameter (C1-C3, Index 0-2) and the second
@@ -365,23 +299,23 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         // C3 (Byte 8, 4-7) == ~C3 (Byte 7, 0-3)
         byte[][] acMatrix = new byte[3][4];
         if (acBytes.length > 2 &&
-                (byte)((acBytes[1]>>>4)&0x0F)  ==
-                        (byte)((acBytes[0]^0xFF)&0x0F) &&
-                (byte)(acBytes[2]&0x0F) ==
-                        (byte)(((acBytes[0]^0xFF)>>>4)&0x0F) &&
-                (byte)((acBytes[2]>>>4)&0x0F)  ==
-                        (byte)((acBytes[1]^0xFF)&0x0F)) {
+                (byte) ((acBytes[1] >>> 4) & 0x0F) ==
+                        (byte) ((acBytes[0] ^ 0xFF) & 0x0F) &&
+                (byte) (acBytes[2] & 0x0F) ==
+                        (byte) (((acBytes[0] ^ 0xFF) >>> 4) & 0x0F) &&
+                (byte) ((acBytes[2] >>> 4) & 0x0F) ==
+                        (byte) ((acBytes[1] ^ 0xFF) & 0x0F)) {
             // C1, Block 0-3
             for (int i = 0; i < 4; i++) {
-                acMatrix[0][i] = (byte)((acBytes[1]>>>4+i)&0x01);
+                acMatrix[0][i] = (byte) ((acBytes[1] >>> 4 + i) & 0x01);
             }
             // C2, Block 0-3
             for (int i = 0; i < 4; i++) {
-                acMatrix[1][i] = (byte)((acBytes[2]>>>i)&0x01);
+                acMatrix[1][i] = (byte) ((acBytes[2] >>> i) & 0x01);
             }
             // C3, Block 0-3
             for (int i = 0; i < 4; i++) {
-                acMatrix[2][i] = (byte)((acBytes[2]>>>4+i)&0x01);
+                acMatrix[2][i] = (byte) ((acBytes[2] >>> 4 + i) & 0x01);
             }
             return acMatrix;
         }
@@ -402,9 +336,10 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         setLoadingLayoutVisibility(true);
         outputString = "";
         sectorMc1kModels = new ArrayList<>();
+        List<String> valueBlockList = new ArrayList<>();
 
         requireActivity().runOnUiThread(() -> {
-            readResult.setBackgroundColor( getResources().getColor(R.color.white));
+            readResult.setBackgroundColor(getResources().getColor(R.color.white));
             readResult.setText("");
         });
 
@@ -428,10 +363,11 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
         sb.append("MifareClassic sector count: ").append(sectorCount).append("\n");
         int blockCount = mfc.getBlockCount();
         sb.append("MifareClassic block count: ").append(blockCount).append("\n");
-        byte[] id = mfc.getTag().getId();
-        sb.append("Tag ID: ").append(bytesToHexNpe(id)).append("\n");
-        String[] techlist = mfc.getTag().getTechList();
-        sb.append("Tag Techlist: ").append(Arrays.toString(techlist));
+
+        sb.append("APP_DIRECTORY: ").append(bytesToHexNpe(MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)).append("\n");
+        sb.append("KEY_DEFAULT  : ").append(bytesToHexNpe(MifareClassic.KEY_DEFAULT)).append("\n");
+        sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
+
         writeToUiAppend(sb.toString());
 
 /*
@@ -480,36 +416,6 @@ promark keys
             mfc.connect();
 
             if (mfc.isConnected()) {
-
-                /*
-                // this is manual doing
-                byte[] block64 = mfc.readBlock(64);
-                if (block64 != null) {
-                    System.out.println("block64 length: " + block64.length + " data: " + bytesToHexNpe(block64));
-                } else {
-                    System.out.println("block64 is NULL");
-                }
-                byte[] block65 = mfc.readBlock(65);
-                if (block65 != null) {
-                    System.out.println("block65 length: " + block65.length + " data: " + bytesToHexNpe(block65));
-                } else {
-                    System.out.println("block65 is NULL");
-                }
-
-                 */
-
-                // see https://blog.linuxgemini.space/derive-pk-of-nxp-mifare-classic-ev1-ecdsa-signature
-                // r can be read on PM3 with the command hf mf rdbl 69 B 4b791bea7bcc
-                // s can be read on PM3 with the command hf mf rdbl 70 B 4b791bea7bcc
-                byte[] r = readBlock(mfc, 69, hexStringToByteArray("4b791bea7bcc"));
-                byte[] s = readBlock(mfc, 70, hexStringToByteArray("4b791bea7bcc"));
-                if ((r != null) && (s != null)) {
-                    System.out.println("r length:" + r.length + " data: " + bytesToHexNpe(r));
-                    System.out.println("s length:" + s.length + " data: " + bytesToHexNpe(s));
-                } else {
-                    System.out.println("r and/or s are null");
-                }
-
                 for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
                     writeToUiAppend("");
                     // this is the loop for all sectors of a Mifare Classic card
@@ -573,37 +479,82 @@ promark keys
                         unused = Arrays.copyOfRange(accessBlock, 9, 10);
                         keyB = readResult[2];
                         sectorMc1kModel = new SectorMc1kModel(
-                          sectorNumber,
-                          isSector0,
-                          isReadableSector,
-                          sectorData,
-                          uidData,
-                          blockData,
-                          accessBlock,
-                          keyA,
-                          accessBits,
-                          unused,
-                          keyB
+                                sectorNumber,
+                                isSector0,
+                                isReadableSector,
+                                sectorData,
+                                uidData,
+                                blockData,
+                                accessBlock,
+                                keyA,
+                                accessBits,
+                                unused,
+                                keyB
                         );
                     }
                     sectorMc1kModels.add(sectorMc1kModel);
                     if (sectorMc1kModel != null) {
                         writeToUiAppend(sectorMc1kModel.dump());
-                    }
+
+                    } // for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
+                    writeToUiAppend("collected all sectors in sectorMc1kModels: " + sectorMc1kModels.size());
+
+
+
                 } // for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
-                writeToUiAppend("collected all sectors in sectorMc1kModels: " + sectorMc1kModels.size());
-            }
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    dumpColored.setEnabled(true);
+                // at his point we check all blocks for ValueBlocks
+
+                // convert all blockData to hexString
+                // isValueBlock on String
+                // collect an Array of lines
+                // output to table
+                // see DumpEditor - decodeValueBlocks()
+                // see ValueBlocksToInt - onCreate
+
+                int numberOfRecords = sectorMc1kModels.size();
+                requireActivity().runOnUiThread(() -> {
+                    mLayout.setBackgroundColor(getResources().getColor(R.color.dark_gray));
+                });
+
+                for (int sector = 0; sector < numberOfRecords; sector++) {
+                    SectorMc1kModel s1m = sectorMc1kModels.get(sector);
+                    if (s1m.isReadableSector()) {
+                        // work only for readable sectors
+                        // only blocks 0, 1 and 2 are checked for a ValueBlock
+                        String line0 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 0, 16));
+                        String line1 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 16, 32));
+                        String line2 = bytesToHexNpe(Arrays.copyOfRange(s1m.getSectorData(), 32, 48));
+                        //if (isValueBlock(line0)) valueBlockList.add(generateListEntry(sector, (4 * sector) + 0, line0));
+                        if (isValueBlock(line0))
+                            valueBlockList.add(generateListEntry(sector, 0, line0));
+                        if (isValueBlock(line1))
+                            valueBlockList.add(generateListEntry(sector, 1, line1));
+                        if (isValueBlock(line2))
+                            valueBlockList.add(generateListEntry(sector, 2, line2));
+                    }
                 }
-            });
+            }
+
             mfc.close();
 
         } catch (IOException e) {
             writeToUiAppend("IOException on connection: " + e.getMessage());
             e.printStackTrace();
+        }
+
+        writeToUiAppend("The tag contains numberOfValueBlocks: " + valueBlockList.size());
+        if (valueBlockList.size() > 0) {
+            for (int i = 0; i < valueBlockList.size(); i++) {
+            //for (int i = 0; i < 3; i++) {
+                System.out.println("*** i : " + i + " ***");
+                // bring the data to a nice view
+                String[] parts = valueBlockList.get(i).split(":");
+                addPosInfoRow("Sector"
+                        + ": " + parts[0] + ", "
+                        + "Block"
+                        + ": " + parts[1]);
+                addValueBlock(parts[2]);
+            }
         }
 
         writeToUiFinal(readResult);
@@ -612,30 +563,107 @@ promark keys
         doVibrate(getActivity());
     }
 
-    /**
-     * read a single block from mifare classic tag by block
-     * @param mif
-     * @param blockCnt
-     * @param key usually keyB for blocks outside the scope of user accessible memory
-     * @return the content of block (16 bytes) or null if any error occurs
-     */
-    private byte[] readBlock(MifareClassic mif, int blockCnt, byte[] key) {
-        byte[] block;
-        int secCnt = mif.blockToSector(blockCnt);
-        System.out.println("readBlock for block " + blockCnt + " is in sector " + secCnt);
-        try {
-            mif.authenticateSectorWithKeyB(secCnt,key);
-            block = mif.readBlock(blockCnt);
-        } catch (IOException e) {
-            //throw new RuntimeException(e);
-            System.out.println("RuntimeException: " + e.getMessage());
-            return null;
-        }
-        return block;
+    private String generateListEntry(int sector, int block, String line) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(sector).append(":").append(block).append(":").append(line);
+        return sb.toString();
     }
 
     /**
+     * Add a row with position information to the layout table.
+     * This row shows the user where the value block is located (sector, block).
+     *
+     * @param value The position information (e.g. "Sector: 1, Block: 2").
+     */
+    private void addPosInfoRow(String value) {
+        requireActivity().runOnUiThread(() -> {
+            TextView header = new TextView(getContext());
+            header.setText(colorString(value,
+                            ContextCompat.getColor(getContext(), R.color.blue)),
+                    TextView.BufferType.SPANNABLE);
+            TableRow tr = new TableRow(getContext());
+            tr.setLayoutParams(new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+            tr.addView(header);
+            mLayout.addView(tr, new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+        });
+    }
+
+    /**
+     * Add full value block information (original
+     * and integer format) to the layout table (two rows).
+     *
+     * @param hexValueBlock The value block as hex string (32 chars.).
+     */
+    private void addValueBlock(String hexValueBlock) {
+        requireActivity().runOnUiThread(() -> {
+            TableRow tr = new TableRow(getContext());
+            TextView what = new TextView(getContext());
+            TextView value = new TextView(getContext());
+
+            // Original.
+            tr.setLayoutParams(new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+            what.setText(colorString("Original:",
+                    ContextCompat.getColor(getContext(), R.color.white)));
+            //what.setText("Original:");
+            value.setText(colorString(hexValueBlock.substring(0, 8),
+                    ContextCompat.getColor(getContext(), R.color.yellow)));
+            tr.addView(what);
+            tr.addView(value);
+            mLayout.addView(tr, new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+
+            // Resolved to int.
+            tr = new TableRow(getContext());
+            tr.setLayoutParams(new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+            what = new TextView(getContext());
+            what.setText(colorString("As Integer:",
+                    ContextCompat.getColor(getContext(), R.color.white)));
+            //what.setText("As Integer:");
+            value = new TextView(getContext());
+            byte[] asBytes = hexStringToByteArray(
+                    hexValueBlock.substring(0, 8));
+            reverseByteArrayInPlace(asBytes);
+            ByteBuffer bb = ByteBuffer.wrap(asBytes);
+            int i = bb.getInt();
+            String asInt = "" + i;
+            value.setText(colorString(asInt,
+                    ContextCompat.getColor(getContext(), R.color.light_green)));
+            tr.addView(what);
+            tr.addView(value);
+            mLayout.addView(tr, new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+        });
+    }
+
+    /**
+     * Reverse a byte Array (e.g. Little Endian -> Big Endian).
+     * Hmpf! Java has no Array.reverse(). And I don't want to use
+     * Commons.Lang (ArrayUtils) from Apache....
+     *
+     * @param array The array to reverse (in-place).
+     */
+    public static void reverseByteArrayInPlace(byte[] array) {
+        for (int i = 0; i < array.length / 2; i++) {
+            byte temp = array[i];
+            array[i] = array[array.length - i - 1];
+            array[array.length - i - 1] = temp;
+        }
+    }
+
+
+    /**
      * read mifare classic card sector by sector
+     *
      * @param mif
      * @param secCnt 0 to 15 (for Mifare Classic 1K) or in general sectorCount
      * @return a double byte array
@@ -651,7 +679,7 @@ promark keys
         byte[] dataBytes = new byte[64];
         boolean isAuthenticated = false;
         // try to authenticate with known keys - no brute force
-        Log.d(TAG,"");
+        Log.d(TAG, "");
         Log.d(TAG, "readMifareSector " + secCnt);
         try {
             if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {

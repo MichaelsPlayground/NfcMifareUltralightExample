@@ -1,22 +1,17 @@
-package de.androidcrypto.nfcmifareclassicexample;
+package de.androidcrypto.nfcmifareultralightexample;
 
-import static de.androidcrypto.nfcmifareclassicexample.Utils.bytesToHexNpe;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.doVibrate;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.getTimestamp;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.hexStringToByteArray;
-import static de.androidcrypto.nfcmifareclassicexample.Utils.playSinglePing;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.bytesToHexNpe;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.doVibrate;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.getTimestamp;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
-import android.nfc.TagLostException;
 import android.nfc.tech.MifareClassic;
-import android.nfc.tech.Ndef;
 import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -42,7 +37,6 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
