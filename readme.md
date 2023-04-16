@@ -12,7 +12,7 @@ The Mifare Ultralight family consists of 3 main subtypes:
 All datasheets are available in the docs folder of this repository but it is always better to get one from the origin source.
 
 https://www.asiarfid.com/how-to-choose-rfid-mifare-chip.html
-
+ 
 There are 5 icons in the "Bottom Navigation Bar":
 
 1) Home: 
