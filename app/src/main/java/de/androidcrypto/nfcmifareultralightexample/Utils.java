@@ -35,12 +35,24 @@ public class Utils {
     }
 
     public static String getTimestamp() {
+        // gives a 19 character long string
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return ZonedDateTime
                     .now(ZoneId.systemDefault())
                     .format(DateTimeFormatter.ofPattern("uuuu.MM.dd HH:mm:ss"));
         } else {
             return new SimpleDateFormat("yyyy.MM.dd HH:mm:ss").format(new Date());
+        }
+    }
+
+    public static String getTimestampShort() {
+        // gives a 15 character long string
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return ZonedDateTime
+                    .now(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofPattern("uuuu.MM.dd HH:mm:ss"));
+        } else {
+            return new SimpleDateFormat("yyMMdd HH:mm:ss").format(new Date());
         }
     }
 

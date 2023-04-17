@@ -4,14 +4,13 @@
     <string name="home_fragments">There are 5 icons to click on:\n1 home = this page\n2 read data\n3 read value = read a value block\n4 write data\n5 write value = write a value block</string>
     <string name="header_read">This app works with a Mifare Ultralight tag for reading</string>
     <string name="description_read">This example expects a Mifare Ultralight type tag. The tag should use only the well known keys A and B for authentication.\n\nWhen a tag is discovered the data from all records will be read.</string>
-    <string name="header_read_ciphertext">This app reads an encrypted NDEF message</string>
-    <string name="description_read_ciphertext">This example expects a class 4 type tag with an encrypted NDEF record (RTD_TEXT).\n\nWhen a tag is discovered the data from all records will be read.</string>
+    <string name="header_read_counter">Read the counter</string>
+    <string name="description_read_counter">This example reads an Ultralight C or EV1 tag type and shows the value of the counter(s).\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="nfc_result">NFC read result</string>
     <string name="header_write">This app works with a Mifare Ultralight tag for writing</string>
-    <string name="description_write">This example writes data to a sector on a Mifare Ultralight tag</string>
-    <string name="read_ciphertext_description">If an encryption dataset is found the data is displayed as well and you can enter a passphrase to decrypt the data.</string>
+    <string name="description_write">This example writes data to a page on a Mifare Ultralight tag</string>
     <string name="action_licenses">Used material and their licenses</string>
-    <string name="header_write_value_block">This app works with a Mifare Ultralight tag for writing a Value Block</string>
-    <string name="header_read_value_block">This app works with a Mifare Ultralight tag for reading all Value Blocks on the tag</string>
+    <string name="header_write_counter">Increment the value of a counter</string>
+    <string name="description_write_counter">This example increases the counter on an Ultralight C or EV1 tag type and shows the value of the counter(s).\n\nWhen a tag is discovered the data from all records will be read.</string>
     <string name="write_counter_warning">The increasing of a counter is not reversible and not resettable, so please act with caution</string>
 </resources>

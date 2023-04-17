@@ -38,12 +38,12 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="8dp"
-            android:hint="Sector">
+            android:hint="Page">
 
             <AutoCompleteTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/writeSector"
+                android:id="@+id/writePage"
                 android:inputType="none">
             </AutoCompleteTextView>
         </com.google.android.material.textfield.TextInputLayout>
@@ -55,8 +55,8 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="8dp"
-            android:checked="true"
-            android:text="add a timestamp to the data"/>
+            android:checked="false"
+            android:text="write a timestamp to the page"/>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/etWriteDataLayout"
@@ -69,7 +69,7 @@
             android:hint="Description"
             app:endIconMode="clear_text"
             app:counterEnabled="true"
-            app:counterMaxLength="28"
+            app:counterMaxLength="16"
             app:boxCornerRadiusBottomEnd="5dp"
             app:boxCornerRadiusBottomStart="5dp"
             app:boxCornerRadiusTopEnd="5dp"
@@ -84,8 +84,8 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:maxLength="28"
-                android:text="data to write in sector"
+                android:maxLength="16"
+                android:text="some data"
                 tools:ignore="KeyboardInaccessibleWidget" />
         </com.google.android.material.textfield.TextInputLayout>
 

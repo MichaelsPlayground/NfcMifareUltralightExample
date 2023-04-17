@@ -135,9 +135,7 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
         TagIdentification ti = new TagIdentification(tag);
         if (ti != null) {
             writeToUiAppend(ti.dumpMifareUltralight());
-
         }
-
 
         MifareUltralight mfu = MifareUltralight.get(tag);
 
@@ -147,16 +145,6 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
             setLoadingLayoutVisibility(false);
             return;
         }
-
-        // get card details
-        int tagType = mfu.getType();
-        StringBuilder sb = new StringBuilder();
-        sb.append("MifareUltralight type: ").append(tagType).append("\n");
-        byte[] id = mfu.getTag().getId();
-        sb.append("Tag ID: ").append(bytesToHexNpe(id)).append("\n");
-        String[] techlist = mfu.getTag().getTechList();
-        sb.append("Tag Techlist: ").append(Arrays.toString(techlist));
-        writeToUiAppend(sb.toString());
 
         try {
             mfu.connect();
@@ -176,35 +164,78 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
                 return;
             }
 
-            // this is for Mifare Ultralight EV-1 only
-            // write the counter
-            int counterNumber = -1;
-
-            if (incrementNoCounter.isChecked()) {
-                counterNumber = -1;
-                Log.d(TAG, "no counter should get increased");
-                writeToUiAppend("no counter should get increased");
+            if (ti.getTagTypeSubName().equals(TagIdentification.techUltralight.MifareUltralightFirst.toString())) {
+                Log.d(TAG, "As the tag type is of Ultralight (first) there are no counter available");
+                writeToUiAppend("As the tag type is of Ultralight (first) there are no counter available");
+                writeToUiFinal(resultNfcWriting);
+                setLoadingLayoutVisibility(false);
+                return;
             }
 
-            if (incrementCounter0.isChecked()) counterNumber = 0;
-            if (incrementCounter1.isChecked()) counterNumber = 1;
-            if (incrementCounter2.isChecked()) counterNumber = 2;
-            if (counterNumber > -1) {
-                byte[] increaseResponse = increaseCounterByOne(mfu, counterNumber);
-                writeToUiAppend(printData("increase counter" + counterNumber + " response", increaseResponse));
+            if (ti.getTagTypeSubName().equals(TagIdentification.techUltralight.MifareUltralightC.toString())) {
+                Log.d(TAG, "Running the code for Ultralight-C");
+                // this is for Mifare Ultralight-C only
+                // the counter is located in page 41d bytes 0 + 1 (16 bit counter)
+                int counterNumber = -1;
+                if (incrementNoCounter.isChecked()) {
+                    counterNumber = -1;
+                    Log.d(TAG, "no counter should get increased");
+                    writeToUiAppend("no counter should get increased");
+                }
+                if (incrementCounter0.isChecked()) {
+                    byte[] increaseValue = new byte[]{(byte) 0x01, (byte) 0x0, (byte) 0x0, (byte) 0x0,};
+                    boolean increaseCounterResult = writePageMifareUltralight(mfu, 41, increaseValue);
+                    writeToUiAppend("increaseCounterResult is " + increaseCounterResult);
+                }
+                if (incrementCounter1.isChecked()) {
+                    Log.d(TAG, "only counter 0 is available on Ultralight-C tags");
+                    writeToUiAppend("only counter 0 is available on Ultralight-C tags");
+                }
+                if (incrementCounter2.isChecked()) {
+                    Log.d(TAG, "only counter 0 is available on Ultralight-C tags");
+                    writeToUiAppend("only counter 0 is available on Ultralight-C tags");
+                }
+                byte[] counter0B = readPageMifareUltralight(mfu, 41);
+                writeToUiAppend(printData("Counter in page 41d", counter0B));
+                int counter0I = 0, counter1I = 0, counter2I = 0;
+                if (counter0B != null) counter0I = byteArrayToInt2Byte(counter0B);
+                writeCounterToUi(counter0I, counter1I, counter2I);
+
             }
-            // read the counters
-            byte[] counter0B = readCounter(mfu, 0);
-            byte[] counter1B = readCounter(mfu, 1);
-            byte[] counter2B = readCounter(mfu, 2);
-            writeToUiAppend(printData("counter0", counter0B));
-            writeToUiAppend(printData("counter1", counter1B));
-            writeToUiAppend(printData("counter2", counter2B));
-            int counter0I = 0, counter1I = 0, counter2I = 0;
-            if (counter0B != null) counter0I = byteArrayToInt3Byte(counter0B);
-            if (counter1B != null) counter1I = byteArrayToInt3Byte(counter1B);
-            if (counter2B != null) counter2I = byteArrayToInt3Byte(counter2B);
-            writeCounterToUi(counter0I, counter1I, counter2I);
+
+            if (ti.getTagTypeSubName().equals(TagIdentification.techUltralight.MifareUltralightEv1.toString())) {
+                Log.d(TAG, "Running the code for Ultralight EV1");
+
+                // this is for Mifare Ultralight EV-1 only
+                // write the counter
+                int counterNumber = -1;
+
+                if (incrementNoCounter.isChecked()) {
+                    counterNumber = -1;
+                    Log.d(TAG, "no counter should get increased");
+                    writeToUiAppend("no counter should get increased");
+                }
+
+                if (incrementCounter0.isChecked()) counterNumber = 0;
+                if (incrementCounter1.isChecked()) counterNumber = 1;
+                if (incrementCounter2.isChecked()) counterNumber = 2;
+                if (counterNumber > -1) {
+                    byte[] increaseResponse = increaseCounterByOneMifareUltralightEv1(mfu, counterNumber);
+                    writeToUiAppend(printData("increase counter" + counterNumber + " response", increaseResponse));
+                }
+                // read the counters
+                byte[] counter0B = readCounterMifareUltralightEv1(mfu, 0);
+                byte[] counter1B = readCounterMifareUltralightEv1(mfu, 1);
+                byte[] counter2B = readCounterMifareUltralightEv1(mfu, 2);
+                writeToUiAppend(printData("counter0", counter0B));
+                writeToUiAppend(printData("counter1", counter1B));
+                writeToUiAppend(printData("counter2", counter2B));
+                int counter0I = 0, counter1I = 0, counter2I = 0;
+                if (counter0B != null) counter0I = byteArrayToInt3Byte(counter0B);
+                if (counter1B != null) counter1I = byteArrayToInt3Byte(counter1B);
+                if (counter2B != null) counter2I = byteArrayToInt3Byte(counter2B);
+                writeCounterToUi(counter0I, counter1I, counter2I);
+            }
 
         } catch (IOException e) {
             //throw new RuntimeException(e);
@@ -219,28 +250,94 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
 
     }
 
-    public static int byteArrayToInt3Byte(byte[] b)
-    {
-        return   b[0] & 0xFF |
+    public static int byteArrayToInt2Byte(byte[] b) {
+        if (b == null) return 0;
+        if (b.length != 2) return 0;
+        return b[0] & 0xFF |
+                (b[1] & 0xFF) << 8;
+    }
+
+    public static int byteArrayToInt3Byte(byte[] b) {
+        if (b == null) return 0;
+        if (b.length != 3) return 0;
+        return b[0] & 0xFF |
                 (b[1] & 0xFF) << 8 |
                 (b[2] & 0xFF) << 16;
     }
 
-    public static int byteArrayToInt4Byte(byte[] b)
-    {
-        return   b[3] & 0xFF |
+    public static int byteArrayToInt4Byte(byte[] b) {
+        if (b == null) return 0;
+        if (b.length != 4) return 0;
+        return b[3] & 0xFF |
                 (b[2] & 0xFF) << 8 |
                 (b[1] & 0xFF) << 16 |
                 (b[0] & 0xFF) << 24;
     }
 
+    private byte[] readPageMifareUltralight(MifareUltralight mfu, int page) {
+        byte[] response = null;
+        try {
+            response = mfu.transceive(new byte[]{
+                    (byte) 0x30,           // READ a page is 4 bytes long
+                    (byte) (page & 0x0ff)  // page address
+            });
+            return response;
+        } catch (IOException e) {
+            Log.d(TAG, "on page " + page + " readPage failed with IOException: " + e.getMessage());
+            //writeToUiAppend("on page " + page + " readPage failed with IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connection and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
+    private boolean writePageMifareUltralight(MifareUltralight mfu, int page, byte[] data4Byte) {
+        if (data4Byte == null) {
+            Log.d(TAG, "writePage data is NULL, aborted");
+            return false;
+        }
+        if (data4Byte.length != 4) {
+            Log.d(TAG, "writePage data is not exact 4 bytes long, aborted");
+            return false;
+        }
+        byte[] response = null;
+        try {
+            mfu.writePage(41, data4Byte);
+            return true;
+        } catch (IOException e) {
+            Log.d(TAG, "on page " + page + " readPage failed with IOException: " + e.getMessage());
+            //writeToUiAppend("on page " + page + " readPage failed with IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connection and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return false;
+    }
+
+
     /**
      * read the counter value for Mifare Ultralight EV1
+     *
      * @param mfu
      * @param counterNumber 0, 1 or 2
      * @return the value for the counter, null is any error occurs
      */
-    private byte[] readCounter(MifareUltralight mfu, int counterNumber) {
+    private byte[] readCounterMifareUltralightEv1(MifareUltralight mfu, int counterNumber) {
         if ((counterNumber < 0) | (counterNumber > 2)) {
             return null;
         }
@@ -267,11 +364,12 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
 
     /**
      * increase the counter value by 1 for Mifare Ultralight EV1
+     *
      * @param mfu
      * @param counterNumber
      * @return ACK/NAK
      */
-    private byte[] increaseCounterByOne(MifareUltralight mfu, int counterNumber) {
+    private byte[] increaseCounterByOneMifareUltralightEv1(MifareUltralight mfu, int counterNumber) {
         if ((counterNumber < 0) | (counterNumber > 2)) {
             return null;
         }
@@ -303,169 +401,7 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
         return null;
     }
 
-    private boolean incrementMifareSector(MifareClassic mif, int secCnt, int blockCnt, int incrValue) {
-        if (!isAcFactorySetting(mif, secCnt)) {
-            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
-            return false;
-        }
-        // todo sanity checks
-        boolean isAuthenticated = false;
-        // try to authenticate with known keys - no brute force
-        Log.d(TAG, "");
-        Log.d(TAG, "writeMifareSector " + secCnt);
-        try {
-
-            // this method is just using the KEY_DEFAULT_KEY for keyA
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-
-                Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                isAuthenticated = true;
-            } else {
-                Log.d(TAG, "NO Auth success");
-                return false;
-            }
-            // get the blockindex
-            int block_index = mif.sectorToBlock(secCnt);
-
-            // increase the value block by some amount
-            mif.increment(block_index + blockCnt, incrValue);
-            // result is stored in scratch register inside tag; now write result to block
-            mif.transfer(block_index + blockCnt);
-        } catch (IOException e) {
-            Log.e(TAG, "Sector " + secCnt + " Block " + blockCnt + " IOException: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
-    private boolean decrementMifareSector(MifareClassic mif, int secCnt, int blockCnt, int incrValue) {
-        if (!isAcFactorySetting(mif, secCnt)) {
-            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
-            return false;
-        }
-        // todo sanity checks
-
-        // try to authenticate with known keys - no brute force
-        Log.d(TAG, "");
-        Log.d(TAG, "writeMifareSector " + secCnt);
-        try {
-
-            // this method is just using the KEY_DEFAULT_KEY for keyA
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                Log.d(TAG, "Auth success with A KEY_DEFAULT");
-            } else {
-                Log.d(TAG, "NO Auth success");
-                return false;
-            }
-            // get the block index
-            int block_index = mif.sectorToBlock(secCnt);
-            // decrease the value block by some amount, if the value is negative make it positive
-            if (incrValue < 0) incrValue = incrValue * -1;
-            mif.decrement(block_index + blockCnt, incrValue);
-            // result is stored in scratch register inside tag; now write result to block
-            mif.transfer(block_index + blockCnt);
-        } catch (IOException e) {
-            Log.e(TAG, "Sector " + secCnt + " Block " + blockCnt + " IOException: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
-    private boolean writeMifareSector1Block(MifareClassic mif, int secCnt, int blockCnt, byte[] blockData) {
-        if (!isAcFactorySetting(mif, secCnt)) {
-            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80), aborted");
-            return false;
-        }
-        // try to authenticate with known key - no brute force
-        Log.d(TAG, "");
-        Log.d(TAG, "writeMifareSector for ValueBlock " + secCnt);
-        try {
-            // this method is just using the KEY_DEFAULT_KEY for keyA
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                Log.d(TAG, "Auth success with A KEY_DEFAULT");
-            }
-
-            // get the block index
-            int block_index = mif.sectorToBlock(secCnt);
-            // get block in sector
-            mif.writeBlock((block_index + blockCnt), blockData);
-        } catch (IOException e) {
-            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
-
-    private boolean writeMifareSector3Blocks(MifareClassic mif, int secCnt, byte[] bd1, byte[] bd2,
-                                      byte[] bd3) {
-        if (!isAcFactorySetting(mif, secCnt)) {
-            Log.e(TAG, "sector has not factory settings 'Access Bytes' (FF 07 80)");
-            return false;
-        }
-        // try to authenticate with known key - no brute force
-        Log.d(TAG, "");
-        Log.d(TAG, "writeMifareSector for ValueBlock " + secCnt);
-        try {
-            // this method is just using the KEY_DEFAULT_KEY for keyA
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                Log.d(TAG, "Auth success with A KEY_DEFAULT");
-            }
-
-            // get the block index
-            int block_index = mif.sectorToBlock(secCnt);
-            // get block in sector
-            //int blocksInSector = mif.getBlockCountInSector(secCnt);
-            int blockInSectorCount = 0;
-            mif.writeBlock((block_index + blockInSectorCount), bd1);
-            blockInSectorCount = 1;
-            mif.writeBlock((block_index + blockInSectorCount), bd2);
-            blockInSectorCount = 2;
-            mif.writeBlock((block_index + blockInSectorCount), bd3);
-        } catch (IOException e) {
-            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
     /**
-     * reads the sector and checks if the access bytes are factory settings = FF 07 80
-     * @param mif
-     * @param secCnt
-     * @return true is factory setting or false if not
-     */
-    private boolean isAcFactorySetting(MifareClassic mif, int secCnt) {
-        try {
-            // this method is just using the KEY_DEFAULT_KEY for keyA
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                Log.d(TAG, "Auth success with A KEY_DEFAULT");
-            } else {
-                Log.d(TAG, "NO Auth success");
-                return false;
-            }
-            // get the blockindex
-            int block_index = mif.sectorToBlock(secCnt);
-            // get block in sector
-            int blocksInSector = mif.getBlockCountInSector(secCnt);
-            // get the data of block 3 = keys & access bytes
-            byte[] block = mif.readBlock((block_index + 3));
-            // get the access bytes
-            byte[] accessBytes = Arrays.copyOfRange(block, 6, 9);
-            // factory setting is FF 07 80
-            if (Arrays.equals(accessBytes, hexStringToByteArray("FF0780"))) return true;
-        } catch (IOException e) {
-            //throw new RuntimeException(e);
-            return false;
-        }
-        return false;
-    }
-
-        /**
      * Sound files downloaded from Material Design Sounds
      * https://m2.material.io/design/sound/sound-resources.html
      */
@@ -480,14 +416,14 @@ public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderC
     }
 
     private void writeCounterToUi(final int counter0I, final int counter1I, final int counter2I) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    counter0.setText(String.valueOf(counter0I));
-                    counter1.setText(String.valueOf(counter1I));
-                    counter2.setText(String.valueOf(counter2I));
-                }
-            });
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                counter0.setText(String.valueOf(counter0I));
+                counter1.setText(String.valueOf(counter1I));
+                counter2.setText(String.valueOf(counter2I));
+            }
+        });
     }
 
     private void writeToUiAppend(String message) {

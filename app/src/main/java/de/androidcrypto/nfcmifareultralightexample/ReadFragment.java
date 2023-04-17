@@ -475,7 +475,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 pagesToRead = 48;
                 pagesComplete = new byte[pagesToRead][];
                 for (int i = 0; i < pagesToRead; i++) {
-                    pagesComplete[i] = readPage(mfu, i);
+                    pagesComplete[i] = readPageMifareUltralight(mfu, i);
                     writeToUiAppend(printData("page " + i, pagesComplete[i]));
                 }
 
@@ -483,7 +483,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                 byte[] counter1B = getCounter(mfu, 1);
                 byte[] counter2B = getCounter(mfu, 2);
                 writeToUiAppend(printData("counter0", counter0B));
-                writeToUiAppend(printData("counter10=-", counter1B));
+                writeToUiAppend(printData("counter1", counter1B));
                 writeToUiAppend(printData("counter2", counter2B));
 
                 // 425245414b4d454946594f5543414e21
@@ -510,7 +510,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                     } catch (Exception e2) {
                     }
                 }
-                byte[] page04 = readPage(mfu, 04);
+                byte[] page04 = readPageMifareUltralight(mfu, 04);
                 writeToUiAppend(printData("page04", page04));
 
 
@@ -890,7 +890,7 @@ Michael Roland
         return null;
     }
 
-    private byte[] readPage(MifareUltralight mfu, int page) {
+    private byte[] readPageMifareUltralight(MifareUltralight mfu, int page) {
         byte[] response = null;
         try {
             response = mfu.transceive(new byte[]{

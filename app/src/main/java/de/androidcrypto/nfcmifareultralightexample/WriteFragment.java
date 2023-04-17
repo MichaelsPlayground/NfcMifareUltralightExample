@@ -1,18 +1,14 @@
 package de.androidcrypto.nfcmifareultralightexample;
 
-import static de.androidcrypto.nfcmifareultralightexample.Utils.bytesToHexNpe;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.doVibrate;
-import static de.androidcrypto.nfcmifareultralightexample.Utils.getTimestamp;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.getTimestampShort;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.printData;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
-import android.nfc.FormatException;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
-import android.nfc.tech.MifareClassic;
-import android.nfc.tech.NdefFormatable;
+import android.nfc.tech.MifareUltralight;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.InputFilter;
@@ -62,7 +58,7 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
     com.google.android.material.textfield.TextInputLayout dataToSendLayout;
 
     private NfcAdapter mNfcAdapter;
-    private int sectorToWrite;
+    private int pageToWrite;
     private String outputString = ""; // used for the UI output
 
     public WriteFragment() {
@@ -87,9 +83,6 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
         return fragment;
     }
 
-    // AID is setup in apduservice.xml
-    // original AID: F0394148148100
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,42 +106,44 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
         dataToSendLayout = getView().findViewById(R.id.etWriteDataLayout);
         resultNfcWriting = getView().findViewById(R.id.etMainResult);
         addTimestampToData = getView().findViewById(R.id.swMainAddTimestampSwitch);
+        addTimestampToData.setChecked(false);
 
+        // The minimum number of pages to write is 12 (= 48 bytes user memory)
+        // as we are writing a 16 bytes long data we do need 4 pages to write the data and
+        // therefore when writing to page 9 we will write to pages 9, 10, 11 and 12
         String[] type = new String[]{
-                "1", "2", "3", "4", "5",
-                "6", "7", "8", "9"};
+                "4", "5", "6", "7", "8",
+                "9"};
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(
                 getView().getContext(),
                 R.layout.drop_down_item,
                 type);
 
-        autoCompleteTextView = getView().findViewById(R.id.writeSector);
+        autoCompleteTextView = getView().findViewById(R.id.writePage);
         autoCompleteTextView.setText(type[0]);
         autoCompleteTextView.setAdapter(arrayAdapter);
 
-
         mNfcAdapter = NfcAdapter.getDefaultAdapter(getView().getContext());
 
-        // todo work with sector 0, has only 32 bytes of data to write (block 1 + 2)
+        // todo work with pages > 12 depending on tag type (12 is common minimum for all Ultralight tag types)
         autoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Log.d(TAG, "sectorToWrite: " + sectorToWrite);
+                Log.d(TAG, "pageToWrite: " + pageToWrite);
             }
         });
 
         addTimestampToData.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                // ts is 19 chars long + 1 separator = 20 characters
+                // ts is 15 chars long + 1 trailing " " = 20 characters
                 if (b) {
-                    dataToSendLayout.setCounterMaxLength(48 - 20);
-                    String ds = dataToSend.getText().toString();
-                    if (ds.length() > 28) dataToSend.setText(ds.substring(0, 28));
-                    setEditTextMaxLength(dataToSend, 28);
+                    dataToSendLayout.setEnabled(false);
+
                 } else {
-                    dataToSendLayout.setCounterMaxLength(48);
-                    setEditTextMaxLength(dataToSend, 48);
+                    dataToSendLayout.setEnabled(true);
+                    dataToSendLayout.setCounterMaxLength(16);
+                    setEditTextMaxLength(dataToSend, 16);
                 }
             }
         });
@@ -177,65 +172,68 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
             resultNfcWriting.setText("");
         });
 
-        // you should have checked that this device is capable of working with Mifare Classic tags, otherwise you receive an exception
+        // you should have checked that this device is capable of working with Mifare Ultralight tags, otherwise you receive an exception
 
         String sendData = dataToSend.getText().toString();
-        if (addTimestampToData.isChecked()) sendData = sendData + " " + getTimestamp();
+        if (addTimestampToData.isChecked()) sendData = getTimestampShort() + " ";
         if (TextUtils.isEmpty(sendData)) {
             writeToUiAppend("Please enter some data to write on tag. Aborted");
             writeToUiFinal(resultNfcWriting);
             return;
         }
+        if (sendData.length() > 16) sendData = sendData.substring(0, 16);
 
-        MifareClassic mfc = MifareClassic.get(tag);
-        if (mfc == null) {
-            writeToUiAppend("The tag is not readable with Mifare Classic classes, sorry");
+        // identify the tag
+        TagIdentification ti = new TagIdentification(tag);
+        if (ti != null) {
+            writeToUiAppend(ti.dumpMifareUltralight());
+        }
+
+        MifareUltralight mfu = MifareUltralight.get(tag);
+
+        if (mfu == null) {
+            writeToUiAppend("The tag is not readable with Mifare Ultralight classes, sorry");
             writeToUiFinal(resultNfcWriting);
+            //setLoadingLayoutVisibility(false);
             return;
         }
 
-        // get card details
-        int ttype = mfc.getType();
-        StringBuilder sb = new StringBuilder();
-        sb.append("MifareClassic type: ").append(ttype).append("\n");
-        int tagSize = mfc.getSize();
-        sb.append("MifareClassic size: ").append(tagSize).append("\n");
-        int sectorCount = mfc.getSectorCount();
-        sb.append("MifareClassic sector count: ").append(sectorCount).append("\n");
-        int blockCount = mfc.getBlockCount();
-        sb.append("MifareClassic block count: ").append(blockCount).append("\n");
-
-        sb.append("APP_DIRECTORY: ").append(bytesToHexNpe(MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)).append("\n");
-        sb.append("KEY_DEFAULT  : ").append(bytesToHexNpe(MifareClassic.KEY_DEFAULT)).append("\n");
-        sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
-
-        writeToUiAppend(sb.toString());
-
         try {
-            mfc.connect();
+            mfu.connect();
 
-            if (mfc.isConnected()) {
+            if (mfu.isConnected()) {
 
-                // get sector to write
+                // lets read some data
+                int pagesToRead = 48;
+                byte[][] pagesComplete = new byte[pagesToRead][];
+                for (int i = 0; i < pagesToRead; i++) {
+                    pagesComplete[i] = readPageMifareUltralight(mfu, i);
+                    writeToUiAppend(printData("page " + i, pagesComplete[i]));
+                }
+
+                // get page to write
                 String choiceString = autoCompleteTextView.getText().toString();
-                sectorToWrite = Integer.parseInt(choiceString);
+                pageToWrite = Integer.parseInt(choiceString);
 
-                // get the block to write and split the data into block of maximal 16 bytes long
-                byte[] dtw = new byte[48]; // todo for sector 0 just 32 bytes and 2 blocks
+                byte[] dtw = new byte[16];
                 System.arraycopy(sendData.getBytes(StandardCharsets.UTF_8), 0, dtw, 0, sendData.getBytes(StandardCharsets.UTF_8).length); // this is an array filled up with 0x00
-                byte[] block1 = Arrays.copyOfRange(dtw, 0, 16);
-                byte[] block2 = Arrays.copyOfRange(dtw, 16, 32);
-                byte[] block3 = Arrays.copyOfRange(dtw, 32, 48);
-                writeToUiAppend("block  length: " + dtw.length + " data: " + bytesToHexNpe(dtw));
-                writeToUiAppend("block1 length: " + block1.length + " data: " + bytesToHexNpe(block1));
-                writeToUiAppend("block2 length: " + block2.length + " data: " + bytesToHexNpe(block2));
-                writeToUiAppend("block3 length: " + block3.length + " data: " + bytesToHexNpe(block3));
+                writeToUiAppend(printData("data to write", dtw));
+                // split dtw (16 bytes long) into 4 byte arrays page 1 to 4
+                byte[] page1 = Arrays.copyOfRange(dtw, 0, 4);
+                byte[] page2 = Arrays.copyOfRange(dtw, 4, 8);
+                byte[] page3 = Arrays.copyOfRange(dtw, 8, 12);
+                byte[] page4 = Arrays.copyOfRange(dtw, 12, 16);
 
                 // write to tag
-                boolean writeSuccess = writeMifareSector(mfc, sectorToWrite, block1, block2, block3);
-                writeToUiAppend("Tried to write data to tag, success ? : " + writeSuccess);
-
-                mfc.close();
+                boolean writeSuccess = writePageMifareUltralight(mfu, pageToWrite, page1);
+                writeToUiAppend("Tried to write data to tag on page " + pageToWrite + ", success ? : " + writeSuccess);
+                writeSuccess = writePageMifareUltralight(mfu, pageToWrite + 1, page2);
+                writeToUiAppend("Tried to write data to tag on page " + pageToWrite + 1 + ", success ? : " + writeSuccess);
+                writeSuccess = writePageMifareUltralight(mfu, pageToWrite + 2, page3);
+                writeToUiAppend("Tried to write data to tag on page " + pageToWrite + 1 + ", success ? : " + writeSuccess);
+                writeSuccess = writePageMifareUltralight(mfu, pageToWrite + 3, page4);
+                writeToUiAppend("Tried to write data to tag on page " + pageToWrite + 1 + ", success ? : " + writeSuccess);
+                mfu.close();
             }
         } catch (IOException e) {
             writeToUiAppend("IOException on connection: " + e.getMessage());
@@ -248,118 +246,59 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
 
     }
 
-    private boolean writeMifareSector(MifareClassic mif, int secCnt, byte[] bd1, byte[] bd2,
-                                      byte[] bd3) {
-        byte[][] returnBytes = new byte[3][64];
-        byte[] keyABytes = null;
-        byte[] keyBBytes = null;
-        byte[] dataBytes = new byte[64];
-        boolean isAuthenticated = false;
-        // try to authenticate with known keys - no brute force
-        Log.d(TAG, "");
-        Log.d(TAG, "writeMifareSector " + secCnt);
+    private byte[] readPageMifareUltralight(MifareUltralight mfu, int page) {
+        byte[] response = null;
         try {
-
-            // this method is just using the KEY_DEFAULT_KEY for keyB
-            if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                isAuthenticated = true;
-            }
-
-
-            /*
-            // construct is there to run the break command
-            boolean c = true;          // true by default
-            while ( c == true ) {       // only loop while true
-                c = false;                  // kill loop on first iteration
-
-                if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
-                    isAuthenticated = true;
-                    break;
-                    // there are 3 default keys available
-                    // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
-                    // MifareClassic.KEY_DEFAULT:                      ffffffffffff
-                    // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM.clone();
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                    keyABytes = MifareClassic.KEY_DEFAULT.clone();
-                    Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                    keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                    isAuthenticated = true;
-                    Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
-                    break;
-                } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                    keyBBytes = MifareClassic.KEY_NFC_FORUM;
-                    Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                    isAuthenticated = true;
-                    break;
-                } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
-                    keyABytes = hexStringToByteArray("4D57414C5648");
-                    Log.d(TAG, "Auth success with A Crowne Plaza key");
-                    isAuthenticated = true;
-                    break;
-                    //4D57414C5648
-                } else {
-                    //return null;
-                    Log.d(TAG, "NO Auth success");
-                }
-            }
-
-             */
-            // get the blockindex
-            int block_index = mif.sectorToBlock(secCnt);
-            // get block in sector
-            int blocksInSector = mif.getBlockCountInSector(secCnt);
-            int blockInSectorCount = 0;
-            mif.writeBlock((block_index + blockInSectorCount), bd1);
-            blockInSectorCount = 1;
-            mif.writeBlock((block_index + blockInSectorCount), bd2);
-            blockInSectorCount = 2;
-            mif.writeBlock((block_index + blockInSectorCount), bd3);
+            response = mfu.transceive(new byte[]{
+                    (byte) 0x30,           // READ a page is 4 bytes long
+                    (byte) (page & 0x0ff)  // page address
+            });
+            return response;
         } catch (IOException e) {
-            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
-            e.printStackTrace();
-            return false;
+            Log.d(TAG, "on page " + page + " readPage failed with IOException: " + e.getMessage());
+            //writeToUiAppend("on page " + page + " readPage failed with IOException: " + e.getMessage());
         }
-        return true;
+        // this is just an advice - if an error occurs - close the connection and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return null;
     }
 
-    private void formatNdef(Tag tag) {
-        // trying to format the tag
-        NdefFormatable format = NdefFormatable.get(tag);
-        if (format != null) {
-            try {
-                format.connect();
-                format.format(new NdefMessage(new NdefRecord(NdefRecord.TNF_EMPTY, null, null, null)));
-                format.close();
-                showMessage("Tag formatted, try again to write on tag");
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                showMessage("Failed to connect");
-                e.printStackTrace();
-            } catch (FormatException e) {
-                // TODO Auto-generated catch block
-                showMessage("Failed Format");
-                e.printStackTrace();
-            }
-        } else {
-            showMessage("Tag not formattable or already formatted to Ndef");
+    private boolean writePageMifareUltralight(MifareUltralight mfu, int page, byte[] data4Byte) {
+        if (data4Byte == null) {
+            Log.d(TAG, "writePage data is NULL, aborted");
+            return false;
         }
+        if (data4Byte.length != 4) {
+            Log.d(TAG, "writePage data is not exact 4 bytes long, aborted");
+            return false;
+        }
+        byte[] response = null;
+        try {
+            mfu.writePage(page, data4Byte);
+            return true;
+        } catch (IOException e) {
+            Log.d(TAG, "on page " + page + " readPage failed with IOException: " + e.getMessage());
+            //writeToUiAppend("on page " + page + " readPage failed with IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connection and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return false;
     }
 
     /**
@@ -377,7 +316,6 @@ public class WriteFragment extends Fragment implements NfcAdapter.ReaderCallback
     }
 
     private void writeToUiAppend(String message) {
-        //System.out.println(message);
         outputString = outputString + message + "\n";
     }
 

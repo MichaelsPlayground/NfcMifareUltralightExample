@@ -224,7 +224,7 @@ public class TagIdentification {
                     numberOfPages = tagSizeInBytes / 4;
                     numberOfCounters = 1;
                     numberOfPageStartUserMemory = 4;
-                    AproductName = "";
+                    productName = "MF0ICU2";
                     isTested = true;
                 } else {
                     // the tag is an Ultralight tag
@@ -234,7 +234,7 @@ public class TagIdentification {
                     numberOfPages = tagSizeInBytes / 4;
                     numberOfCounters = 0;
                     numberOfPageStartUserMemory = 4;
-                    AproductName = "MF0UL21";
+                    productName = "MF0ICU1";
                     isTested = false;
                 }
             }
@@ -323,16 +323,18 @@ public class TagIdentification {
 
     public String dumpMifareUltralight() {
         StringBuilder sb = new StringBuilder();
+        sb.append("Tag ID: ").append(tagId).append("\n");
         sb.append("Tag type name: ").append(tagTypeName).append("\n");
         sb.append("Tag sub type name: ").append(tagTypeSubName).append("\n");
         sb.append("Tag sub type: ").append(String.valueOf(tagTypeSub)).append("\n");
-        sb.append("Complete memory: ").append(String.valueOf(tagSizeInBytes)).append("\n");
-        sb.append("User memory: ").append(String.valueOf(tagSizeUserInBytes)).append("\n");
+        sb.append("Tag product name: ").append(productName).append("\n");
+        sb.append("Complete memory: ").append(String.valueOf(tagSizeInBytes)).append(" bytes").append("\n");
+        sb.append("User memory: ").append(String.valueOf(tagSizeUserInBytes)).append(" bytes").append("\n");
         sb.append("Complete number of pages: ").append(String.valueOf(numberOfPages)).append("\n");
         sb.append("Start of user memory page: ").append(String.valueOf(numberOfPageStartUserMemory)).append("\n");
         sb.append("Number of counters: ").append(String.valueOf(numberOfCounters)).append("\n");
 
-        sb.append("Analyze is tested: ").append(isTested).append("\n");
+        sb.append("Analyze is tested: ").append(isTested);
 
         return sb.toString();
     }
