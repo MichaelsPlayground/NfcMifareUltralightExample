@@ -57,6 +57,7 @@ public class TagIdentification {
     private String tagTypeName;
     private int tagTypeSub;
     private String tagTypeSubName;
+    private String productName;
     private int tagSizeInBytes = 0;
     private int tagSizeUserInBytes = 0;
     private int numberOfCounters = 0;
@@ -201,6 +202,7 @@ public class TagIdentification {
                     tagSizeUserInBytes = 48; // user memory
                     numberOfPages = tagSizeInBytes / 4;
                     numberOfPageStartUserMemory = 4;
+                    productName = "MF0UL11";
                     isTested = true;
                 }
                 if (getVersionResp[6] == (byte) 0x0e) {
@@ -208,6 +210,7 @@ public class TagIdentification {
                     tagSizeUserInBytes = 128; // user memory
                     numberOfPages = tagSizeInBytes / 4;
                     numberOfPageStartUserMemory = 4;
+                    productName = "MF0UL21";
                     isTested = false;
                 }
                 numberOfCounters = 3;
@@ -221,6 +224,7 @@ public class TagIdentification {
                     numberOfPages = tagSizeInBytes / 4;
                     numberOfCounters = 1;
                     numberOfPageStartUserMemory = 4;
+                    AproductName = "";
                     isTested = true;
                 } else {
                     // the tag is an Ultralight tag
@@ -230,6 +234,7 @@ public class TagIdentification {
                     numberOfPages = tagSizeInBytes / 4;
                     numberOfCounters = 0;
                     numberOfPageStartUserMemory = 4;
+                    AproductName = "MF0UL21";
                     isTested = false;
                 }
             }
