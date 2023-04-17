@@ -3,12 +3,14 @@ package de.androidcrypto.nfcmifareultralightexample;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.bytesToHexNpe;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.doVibrate;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.hexStringToByteArray;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.printData;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
+import android.nfc.tech.MifareUltralight;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -19,6 +21,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CompoundButton;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,14 +51,12 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     private String mParam1;
     private String mParam2;
 
-    com.google.android.material.textfield.TextInputEditText incrementValueBlock, dataToSend, resultNfcWriting;
-    SwitchMaterial swIncrementValueBlock;
-
-    com.google.android.material.textfield.TextInputLayout dataToSendLayout, incrementValueBlockLayout;
-
+    com.google.android.material.textfield.TextInputLayout counter0Layout, counter1Layout, counter2Layout;
+    com.google.android.material.textfield.TextInputEditText incrementCounter, counter0, counter1, counter2, resultNfcWriting;
+    RadioButton incrementNoCounter, incrementCounter0, incrementCounter1, incrementCounter2;
+    private View loadingLayout;
 
     private NfcAdapter mNfcAdapter;
-    private int sectorToWrite, blockToWrite;
     private String outputString = ""; // used for the UI output
 
     public WriteValueBlockFragment() {
@@ -99,29 +100,18 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 
-        dataToSend = getView().findViewById(R.id.etWriteData);
-        dataToSendLayout = getView().findViewById(R.id.etWriteDataLayout);
+        incrementCounter = getView().findViewById(R.id.etCounterIncreaseValue);
+        counter0 = getView().findViewById(R.id.etCounter0);
+        counter1 = getView().findViewById(R.id.etCounter1);
+        counter2 = getView().findViewById(R.id.etCounter2);
+        incrementNoCounter = getView().findViewById(R.id.rbCounterNoIncrease);
+        incrementCounter0 = getView().findViewById(R.id.rbIncreaseCounter0);
+        incrementCounter1 = getView().findViewById(R.id.rbIncreraseCounter1);
+        incrementCounter2 = getView().findViewById(R.id.rbIncreaseCounter2);
         resultNfcWriting = getView().findViewById(R.id.etMainResult);
-        swIncrementValueBlock = getView().findViewById(R.id.swIncrementValueBlock);
-        incrementValueBlock = getView().findViewById(R.id.etWriteIncrement);
-        incrementValueBlockLayout = getView().findViewById(R.id.etWriteIncrementLayout);
-
+        loadingLayout = getView().findViewById(R.id.loading_layout);
 
         mNfcAdapter = NfcAdapter.getDefaultAdapter(getView().getContext());
-
-
-        swIncrementValueBlock.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                // if checked increment, if false just write a blank value block
-                if (b) {
-                    incrementValueBlockLayout.setVisibility(View.VISIBLE);
-                } else {
-                    incrementValueBlockLayout.setVisibility(View.GONE);
-                    incrementValueBlock.setText("1");
-                }
-            }
-        });
 
     }
 
@@ -137,6 +127,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
 
         System.out.println("NFC tag discovered");
         playSinglePing();
+        setLoadingLayoutVisibility(true);
         outputString = "";
 
         requireActivity().runOnUiThread(() -> {
@@ -144,130 +135,168 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
             resultNfcWriting.setBackgroundColor(getResources().getColor(R.color.white));
         });
 
-        // you should have checked that this device is capable of working with Mifare Classic tags, otherwise you receive an exception
-        MifareClassic mfc = MifareClassic.get(tag);
-        if (mfc == null) {
-            writeToUiAppend("The tag is not readable with Mifare Classic classes, sorry");
+        MifareUltralight mfu = MifareUltralight.get(tag);
+
+        if (mfu == null) {
+            writeToUiAppend("The tag is not readable with Mifare Ultralight classes, sorry");
             writeToUiFinal(resultNfcWriting);
+            setLoadingLayoutVisibility(false);
             return;
         }
 
         // get card details
-        int ttype = mfc.getType();
+        int tagType = mfu.getType();
         StringBuilder sb = new StringBuilder();
-        sb.append("MifareClassic type: ").append(ttype).append("\n");
-        int tagSize = mfc.getSize();
-        sb.append("MifareClassic size: ").append(tagSize).append("\n");
-        int sectorCount = mfc.getSectorCount();
-        sb.append("MifareClassic sector count: ").append(sectorCount).append("\n");
-        int blockCount = mfc.getBlockCount();
-        sb.append("MifareClassic block count: ").append(blockCount).append("\n");
-
-        sb.append("APP_DIRECTORY: ").append(bytesToHexNpe(MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)).append("\n");
-        sb.append("KEY_DEFAULT  : ").append(bytesToHexNpe(MifareClassic.KEY_DEFAULT)).append("\n");
-        sb.append("KEY_NFC_FORUM: ").append(bytesToHexNpe(MifareClassic.KEY_NFC_FORUM)).append("\n");
-
+        sb.append("MifareUltralight type: ").append(tagType).append("\n");
+        byte[] id = mfu.getTag().getId();
+        sb.append("Tag ID: ").append(bytesToHexNpe(id)).append("\n");
+        String[] techlist = mfu.getTag().getTechList();
+        sb.append("Tag Techlist: ").append(Arrays.toString(techlist));
         writeToUiAppend(sb.toString());
-        boolean writeSuccess = false;
+
         try {
-            mfc.connect();
+            mfu.connect();
 
-            if (mfc.isConnected()) {
+            // todo distinguish between Ultralight (no counter), Ultralight-C (3 counter in non user memory) and Ultralight EV1 (1 counter in page)
+            // todo enable counter0 on C and EV-1 only
+            // todo enable counter1 and counter2 on EV1 only
 
-                // factory setting for AccessByte: FF 07 80
-                // see http://calc.gmss.ru/Mifare1k/
-                // Saddle West card sector 14 is available
-
-                // https://stackoverflow.com/questions/26444995/mifare-1k-write-block-but-cannot-read-value-block
-                // https://stackoverflow.com/questions/16480205/android-nfc-mifare-classic-1k-increment-operation-tranceive-failed
-                // https://stackoverflow.com/questions/12208568/how-to-construct-a-value-block-on-mifareclassic-via-android-nfc-api
-
-
-                // get sector and block to write
-                String sectorChoiceString = "a";
-                sectorToWrite = Integer.parseInt(sectorChoiceString);
-                String blockChoiceString = "b";
-                blockToWrite = Integer.parseInt(blockChoiceString);
-
-                // check if we should write a blank value or do an increment
-                if (swIncrementValueBlock.isChecked()) {
-                    // increment the value block
-                    // write to tag
-                    //int blockToWrite = 0;
-                    int incrementValue = Integer.parseInt(incrementValueBlock.getText().toString());
-
-                    if (incrementValue == 0) {
-                        writeToUiAppend("enter a positive or negative number but not 0");
-                        return;
-                    }
-                    if (incrementValue > 0) {
-                        writeSuccess = incrementMifareSector(mfc, sectorToWrite, blockToWrite, incrementValue);
-                        writeToUiAppend("Tried to increment data to tag, success ? : " + writeSuccess);
-                    } else {
-                        writeSuccess = decrementMifareSector(mfc, sectorToWrite, blockToWrite, incrementValue);
-                        writeToUiAppend("Tried to decrement data to tag, success ? : " + writeSuccess);
-                    }
-                } else {
-                    // write fixed value block data
-                    // construct value block of value zero; "address" byte is set to 0 in this example
-                    byte[] zeroValue = {0, 0, 0, 0, (byte) 255, (byte) 255, (byte) 255, (byte) 255, 0, 0, 0, 0, 0, (byte) 255, 0, (byte) 255};
-                /*
-                However, the format of the value-block is simple:
-                byte 0..3:   32 bit value in little endian
-                byte 4..7:   copy of byte 0..3, with inverted bits (aka. XOR 255)
-                byte 8..11:  copy of byte 0..3
-                byte 12:     index of backup block (can be any value)
-                byte 13:     copy of byte 12 with inverted bits (aka. XOR 255)
-                byte 14:     copy of byte 12
-                byte 15:     copy of byte 13
-                 */
-                    //mifare.writeBlock(blockIndex, zeroValue);
-                    // increase the value block by some amount
-                    //mifare.increment(blockIndex, value);
-                    // result is stored in scratch register inside tag; now write result to block
-                    //mifare.transfer(blockIndex);
-                    writeToUiAppend("This is the sample data block written to block " + blockToWrite+ " of sector " + sectorToWrite + " :\n" + bytesToHexNpe(zeroValue));
-
-                /*
-
-                // get the block to write and split the data into block of maximal 16 bytes long
-                byte[] dtw = new byte[48]; // todo for sector 0 just 32 bytes and 2 blocks
-                System.arraycopy(sendData.getBytes(StandardCharsets.UTF_8), 0, dtw, 0, sendData.getBytes(StandardCharsets.UTF_8).length); // this is an array filled up with 0x00
-                byte[] block1 = Arrays.copyOfRange(dtw, 0, 16);
-                byte[] block2 = Arrays.copyOfRange(dtw, 16, 32);
-                byte[] block3 = Arrays.copyOfRange(dtw, 32, 48);
-                writeToUiAppend("block  length: " + dtw.length + " data: " + bytesToHexNpe(dtw));
-                writeToUiAppend("block1 length: " + block1.length + " data: " + bytesToHexNpe(block1));
-                writeToUiAppend("block2 length: " + block2.length + " data: " + bytesToHexNpe(block2));
-                writeToUiAppend("block3 length: " + block3.length + " data: " + bytesToHexNpe(block3));
-
-                 */
-
-                    // todo check for AccessBytes before writing
-
-                    // write to tag - 3 counterBlocks
-                    //boolean writeSuccess = writeMifareSector3Blocks(mfc, sectorToWrite, zeroValue, zeroValue, zeroValue);
-
-                    // write to one block only
-                    writeSuccess = writeMifareSector1Block(mfc, sectorToWrite, blockToWrite, zeroValue);
-                    writeToUiAppend("Tried to write data to tag, success ? : " + writeSuccess);
-                }
-                mfc.close();
+            // as the incrementCounter EditText is disabled and fixed to 1 the exception should never thrown
+            try {
+                int increaseValue = Integer.parseInt(incrementCounter.getText().toString());
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "wrong value in increaseValue: " + e.getMessage());
+                writeToUiAppend("wrong value in increaseValue: " + e.getMessage());
+                writeToUiFinal(resultNfcWriting);
+                setLoadingLayoutVisibility(false);
+                return;
             }
+
+            // this is for Mifare Ultralight EV-1 only
+            // write the counter
+            int counterNumber = -1;
+
+            if (incrementNoCounter.isChecked()) {
+                counterNumber = -1;
+                Log.d(TAG, "no counter should get increased");
+                writeToUiAppend("no counter should get increased");
+            }
+
+            if (incrementCounter0.isChecked()) counterNumber = 0;
+            if (incrementCounter1.isChecked()) counterNumber = 1;
+            if (incrementCounter2.isChecked()) counterNumber = 2;
+            if (counterNumber > -1) {
+                byte[] increaseResponse = increaseCounterByOne(mfu, counterNumber);
+                writeToUiAppend(printData("increase counter" + counterNumber + " response", increaseResponse));
+            }
+            // read the counters
+            byte[] counter0B = readCounter(mfu, 0);
+            byte[] counter1B = readCounter(mfu, 1);
+            byte[] counter2B = readCounter(mfu, 2);
+            writeToUiAppend(printData("counter0", counter0B));
+            writeToUiAppend(printData("counter1", counter1B));
+            writeToUiAppend(printData("counter2", counter2B));
+            int counter0I = 0, counter1I = 0, counter2I = 0;
+            if (counter0B != null) counter0I = byteArrayToInt3Byte(counter0B);
+            if (counter1B != null) counter1I = byteArrayToInt3Byte(counter1B);
+            if (counter2B != null) counter2I = byteArrayToInt3Byte(counter2B);
+            writeCounterToUi(counter0I, counter1I, counter2I);
+
         } catch (IOException e) {
-            writeToUiAppend("IOException on connection: " + e.getMessage());
-            e.printStackTrace();
+            //throw new RuntimeException(e);
+            Log.e(TAG, "Error on connection to NFC tag: " + e.getMessage());
+            writeToUiAppend("Error on connection to NFC tag: " + e.getMessage());
         }
 
-        doVibrate(getActivity());
-        playDoublePing();
         writeToUiFinal(resultNfcWriting);
-        if (writeSuccess) {
-            resultNfcWriting.setBackgroundColor(getResources().getColor(R.color.light_background_green));
-        } else {
-            resultNfcWriting.setBackgroundColor(getResources().getColor(R.color.light_background_red));
-        }
+        playDoublePing();
+        setLoadingLayoutVisibility(false);
+        doVibrate(getActivity());
 
+    }
+
+    public static int byteArrayToInt3Byte(byte[] b)
+    {
+        return   b[0] & 0xFF |
+                (b[1] & 0xFF) << 8 |
+                (b[2] & 0xFF) << 16;
+    }
+
+    public static int byteArrayToInt4Byte(byte[] b)
+    {
+        return   b[3] & 0xFF |
+                (b[2] & 0xFF) << 8 |
+                (b[1] & 0xFF) << 16 |
+                (b[0] & 0xFF) << 24;
+    }
+
+    /**
+     * read the counter value for Mifare Ultralight EV1
+     * @param mfu
+     * @param counterNumber 0, 1 or 2
+     * @return the value for the counter, null is any error occurs
+     */
+    private byte[] readCounter(MifareUltralight mfu, int counterNumber) {
+        if ((counterNumber < 0) | (counterNumber > 2)) {
+            return null;
+        }
+        byte[] response = null;
+        try {
+            byte[] getCounterCommand = new byte[]{(byte) 0x39, (byte) (counterNumber & 0x0ff)};
+            response = mfu.transceive(getCounterCommand);
+            return response;
+        } catch (IOException e) {
+            Log.d(TAG, "readCounter IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connenction and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
+    /**
+     * increase the counter value by 1 for Mifare Ultralight EV1
+     * @param mfu
+     * @param counterNumber
+     * @return ACK/NAK
+     */
+    private byte[] increaseCounterByOne(MifareUltralight mfu, int counterNumber) {
+        if ((counterNumber < 0) | (counterNumber > 2)) {
+            return null;
+        }
+        byte[] response = null;
+        try {
+            byte[] getCounterCommand = new byte[]{(
+                    byte) 0xA5, // increase counter command
+                    (byte) (counterNumber & 0x0ff), // counter number
+                    (byte) 0x01, // increase by 1
+                    (byte) 0x00,
+                    (byte) 0x00,
+                    (byte) 0x00
+            };
+            response = mfu.transceive(getCounterCommand);
+            return response;
+        } catch (IOException e) {
+            Log.d(TAG, "readCounter IOException: " + e.getMessage());
+        }
+        // this is just an advice - if an error occurs - close the connenction and reconnect the tag
+        // https://stackoverflow.com/a/37047375/8166854
+        try {
+            mfu.close();
+        } catch (Exception e) {
+        }
+        try {
+            mfu.connect();
+        } catch (Exception e) {
+        }
+        return null;
     }
 
     private boolean incrementMifareSector(MifareClassic mif, int secCnt, int blockCnt, int incrValue) {
@@ -446,6 +475,17 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         mp.start();
     }
 
+    private void writeCounterToUi(final int counter0I, final int counter1I, final int counter2I) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    counter0.setText(String.valueOf(counter0I));
+                    counter1.setText(String.valueOf(counter1I));
+                    counter2.setText(String.valueOf(counter2I));
+                }
+            });
+    }
+
     private void writeToUiAppend(String message) {
         //System.out.println(message);
         outputString = outputString + message + "\n";
@@ -463,6 +503,21 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
         }
     }
 
+    /**
+     * shows a progress bar as long as the reading lasts
+     *
+     * @param isVisible
+     */
+
+    private void setLoadingLayoutVisibility(boolean isVisible) {
+        getActivity().runOnUiThread(() -> {
+            if (isVisible) {
+                loadingLayout.setVisibility(View.VISIBLE);
+            } else {
+                loadingLayout.setVisibility(View.GONE);
+            }
+        });
+    }
 
     private void showMessage(String message) {
         getActivity().runOnUiThread(() -> {

@@ -62,6 +62,26 @@ public class Utils {
         return data;
     }
 
+    public static String printData(String dataName, byte[] data) {
+        int dataLength;
+        String dataString = "";
+        if (data == null) {
+            dataLength = 0;
+            dataString = "IS NULL";
+        } else {
+            dataLength = data.length;
+            dataString = Utils.bytesToHexNpe(data);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb
+                .append(dataName)
+                .append(" length: ")
+                .append(dataLength)
+                .append(" data: ")
+                .append(dataString);
+        return sb.toString();
+    }
+
     public static String parseTextrecordPayload(byte[] ndefPayload) {
         int languageCodeLength = Array.getByte(ndefPayload, 0);
         int ndefPayloadLength = ndefPayload.length;

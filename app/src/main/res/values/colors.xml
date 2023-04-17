@@ -13,6 +13,8 @@
     <color name="colorPrimaryDark">#3F51B5</color>
     <color name="colorAccent">#8E24AA</color>
 
+    <color name="light_orange">#FBCC7A</color>
+
     <!-- colors for colored sector data -->
     <color name="blue">@android:color/holo_blue_light</color>
     <color name="light_background_green">#C0FFC0</color>

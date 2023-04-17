@@ -3,6 +3,7 @@ package de.androidcrypto.nfcmifareultralightexample;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.bytesToHexNpe;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.doVibrate;
 import static de.androidcrypto.nfcmifareultralightexample.Utils.hexStringToByteArray;
+import static de.androidcrypto.nfcmifareultralightexample.Utils.printData;
 
 import android.content.Context;
 import android.content.Intent;
@@ -887,27 +888,6 @@ Michael Roland
         } catch (Exception e) {
         }
         return null;
-    }
-
-
-    private String printData(String dataName, byte[] data) {
-        int dataLength;
-        String dataString = "";
-        if (data == null) {
-            dataLength = 0;
-            dataString = "IS NULL";
-        } else {
-            dataLength = data.length;
-            dataString = Utils.bytesToHexNpe(data);
-        }
-        StringBuilder sb = new StringBuilder();
-        sb
-                .append(dataName)
-                .append(" length: ")
-                .append(dataLength)
-                .append(" data: ")
-                .append(dataString);
-        return sb.toString();
     }
 
     private byte[] readPage(MifareUltralight mfu, int page) {

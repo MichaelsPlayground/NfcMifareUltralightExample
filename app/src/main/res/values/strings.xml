@@ -13,4 +13,5 @@
     <string name="action_licenses">Used material and their licenses</string>
     <string name="header_write_value_block">This app works with a Mifare Ultralight tag for writing a Value Block</string>
     <string name="header_read_value_block">This app works with a Mifare Ultralight tag for reading all Value Blocks on the tag</string>
+    <string name="write_counter_warning">The increasing of a counter is not reversible and not resettable, so please act with caution</string>
 </resources>
