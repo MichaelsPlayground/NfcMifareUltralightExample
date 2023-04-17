@@ -17,10 +17,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.CompoundButton;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,23 +25,21 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.material.switchmaterial.SwitchMaterial;
-
 import java.io.IOException;
 import java.util.Arrays;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link WriteValueBlockFragment#newInstance} factory method to
+ * Use the {@link WriteCounterFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class WriteValueBlockFragment extends Fragment implements NfcAdapter.ReaderCallback {
+public class WriteCounterFragment extends Fragment implements NfcAdapter.ReaderCallback {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-    private static final String TAG = "WriteValueBlockFragment";
+    private static final String TAG = "WriteCounterFragment";
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -59,7 +53,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     private NfcAdapter mNfcAdapter;
     private String outputString = ""; // used for the UI output
 
-    public WriteValueBlockFragment() {
+    public WriteCounterFragment() {
         // Required empty public constructor
     }
 
@@ -72,8 +66,8 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
      * @return A new instance of fragment SendFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static WriteValueBlockFragment newInstance(String param1, String param2) {
-        WriteValueBlockFragment fragment = new WriteValueBlockFragment();
+    public static WriteCounterFragment newInstance(String param1, String param2) {
+        WriteCounterFragment fragment = new WriteCounterFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -94,7 +88,7 @@ public class WriteValueBlockFragment extends Fragment implements NfcAdapter.Read
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_write_value_block, container, false);
+        return inflater.inflate(R.layout.fragment_write_counter, container, false);
     }
 
     @Override
