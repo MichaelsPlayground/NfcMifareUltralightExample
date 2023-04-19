@@ -210,15 +210,15 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                     }
                     // caption
                     // Color caption.
-                    SpannableString keyA = colorString("KeyA",
+                    SpannableString otp = colorString("One time programmable",
                             ContextCompat.getColor(getContext(), R.color.light_green));
                     SpannableString keyB = colorString("KeyB",
                             ContextCompat.getColor(getContext(), R.color.dark_green));
                     SpannableString ac = colorString("ACs",
                             ContextCompat.getColor(getContext(), R.color.orange));
-                    SpannableString uidAndManuf = colorString("UID & ManuInfo",
+                    SpannableString serialNumber = colorString("Serial number",
                             ContextCompat.getColor(getContext(), R.color.purple));
-                    SpannableString vb = colorString("ValueBlock",
+                    SpannableString lockBytes = colorString("Lock bytes",
                             ContextCompat.getColor(getContext(), R.color.yellow));
                     SpannableString sep = colorString(" | ",
                             ContextCompat.getColor(getContext(), R.color.white));
@@ -228,7 +228,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                             ContextCompat.getColor(getContext(), R.color.white));
                     SpannableString sep4 = colorString(" | ",
                             ContextCompat.getColor(getContext(), R.color.white));
-                    ssb.append(uidAndManuf).append(sep).append(vb).append(sep2).append(keyA).append(sep3).append(keyB).append(sep4).append(ac).append("\n");
+                    ssb.append(serialNumber).append(sep).append(lockBytes).append(sep2).append(otp).append(sep3).append(keyB).append(sep4).append(ac).append("\n");
                     /*
                     ssb.append(TextUtils.concat(uidAndManuf, sep,
                             vb, sep, keyA, sep, keyB, sep, ac)).append("\n");
@@ -285,13 +285,13 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
      */
     private SpannableString colorSectorTrailer(String data) {
         // Get sector trailer colors.
-        int colorKeyA = ContextCompat.getColor(getContext(), R.color.light_green);
+        int colorSerialNumber = ContextCompat.getColor(getContext(), R.color.light_green);
         int colorKeyB = ContextCompat.getColor(getContext(), R.color.dark_green);
         int colorAC = ContextCompat.getColor(getContext(), R.color.orange);
         int colorDatByte = ContextCompat.getColor(getContext(), R.color.white);
         try {
-            SpannableString keyA = colorString(
-                    data.substring(0, 12), colorKeyA);
+            SpannableString serialNumber = colorString(
+                    data.substring(0, 12), colorSerialNumber);
             SpannableString keyB = colorString(
                     data.substring(20), colorKeyB);
             SpannableString ac = colorString(
@@ -299,7 +299,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             SpannableString datByte = colorString(
                     data.substring(18, 20), colorDatByte);
             return new SpannableString(
-                    TextUtils.concat(keyA, ac, datByte, keyB));
+                    TextUtils.concat(serialNumber, ac, datByte, keyB));
         } catch (IndexOutOfBoundsException e) {
             Log.d(TAG, "Error while coloring " +
                     "sector trailer");
@@ -472,7 +472,7 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
             if (mfu.isConnected()) {
 
                 // we are trying to read 48 pages (maximum for Ultralight-C) although Ultralight and Ultralight EV-1 are smaller
-                pagesToRead = 48;
+                pagesToRead = 15;
                 pagesComplete = new byte[pagesToRead][];
                 for (int i = 0; i < pagesToRead; i++) {
                     pagesComplete[i] = readPageMifareUltralight(mfu, i);
@@ -495,8 +495,11 @@ public class ReadFragment extends Fragment implements NfcAdapter.ReaderCallback 
                         (byte) 0x52, (byte) 0x42, (byte) 0x21, (byte) 0x4E,
                         (byte) 0x41, (byte) 0x43, (byte) 0x55, (byte) 0x4F,
                         (byte) 0x59, (byte) 0x46 };
+                byte[] keyFromUid = new byte[16];
+                System.arraycopy(id, 0, keyFromUid, 0 , id.length);
+
                 try {
-                    authenticate(mfu, defaultKey);
+                    authenticate(mfu, keyFromUid);
                 } catch (Exception e) {
                     //throw new RuntimeException(e);
                     // this is just an advice - if an error occurs - close the connection and reconnect the tag
@@ -549,8 +552,6 @@ Michael Roland
                 isUltralightC = false;
                 isUltralightEv1 = false;
 
-
-
                 // checks for distinguishing the correct type of card
                 byte[] getVersionResp = getVersion(mfu);
                 byte[] doAuthResp = doAuthenticate(mfu);
@@ -569,32 +570,32 @@ Michael Roland
                         storageSize = 144; // 128 bytes user memory
                         pagesToRead = storageSize / 4;
                     }
-                    Log.d(TAG, "Tag is an Mifare Ultralight EV1 with a storage size of " + storageSize + " bytes");
+                    Log.d(TAG, "Tag is a Mifare Ultralight EV1 with a storage size of " + storageSize + " bytes");
                 } else {
                     // now we are checking if getVersionResponse is not null meaning an Ultralight-C tag
                     if (doAuthResp != null) {
                         isUltralightC = true;
                         storageSize = 192;
                         pagesToRead = storageSize / 4;
-                        Log.d(TAG, "Tag is an Mifare Ultralight-C with a storage size of " + storageSize + " bytes");
+                        Log.d(TAG, "Tag is a Mifare Ultralight-C with a storage size of " + storageSize + " bytes");
                     } else {
                         // the tag is an Ultralight tag
                         isUltralight = true;
                         storageSize = 64;
                         pagesToRead = storageSize / 4;
-                        Log.d(TAG, "Tag is an Mifare Ultralight with a storage size of " + storageSize + " bytes");
+                        Log.d(TAG, "Tag is a Mifare Ultralight with a storage size of " + storageSize + " bytes");
                     }
                 }
 
                 // tag identification
                 if (isUltralight) {
-                    writeToUiAppend("The tag is an Mifare Ultralight tag with a storage size of " + storageSize + " bytes");
+                    writeToUiAppend("The tag is a Mifare Ultralight tag with a storage size of " + storageSize + " bytes");
                 }
                 if (isUltralightC) {
-                    writeToUiAppend("The tag is an Mifare Ultralight-C tag with a storage size of " + storageSize + " bytes");
+                    writeToUiAppend("The tag is a Mifare Ultralight-C tag with a storage size of " + storageSize + " bytes");
                 }
                 if (isUltralightEv1) {
-                    writeToUiAppend("The tag is an Mifare Ultralight EV1 tag with a storage size of " + storageSize + " bytes");
+                    writeToUiAppend("The tag is a Mifare Ultralight EV1 tag with a storage size of " + storageSize + " bytes");
                 }
 
                 if (storageSize == 0) {
@@ -609,107 +610,6 @@ Michael Roland
                     throw new RuntimeException(e);
                 }
 */
-
-
-
-                /*
-
-                // see https://blog.linuxgemini.space/derive-pk-of-nxp-mifare-classic-ev1-ecdsa-signature
-                // r can be read on PM3 with the command hf mf rdbl 69 B 4b791bea7bcc
-                // s can be read on PM3 with the command hf mf rdbl 70 B 4b791bea7bcc
-                byte[] r = readBlock(mfc, 69, hexStringToByteArray("4b791bea7bcc"));
-                byte[] s = readBlock(mfc, 70, hexStringToByteArray("4b791bea7bcc"));
-                if ((r != null) && (s != null)) {
-                    System.out.println("r length:" + r.length + " data: " + bytesToHexNpe(r));
-                    System.out.println("s length:" + s.length + " data: " + bytesToHexNpe(s));
-                } else {
-                    System.out.println("r and/or s are null");
-                }
-
-                for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
-                    writeToUiAppend("");
-                    // this is the loop for all sectors of a Mifare Classic card
-                    int sectorNumber;
-                    boolean isSector0 = false;
-                    boolean isReadableSector;
-                    byte[] sectorData = new byte[64]; // sector 0 first 16 bytes a re UID & manufacture info, last 16 bytes is access block
-                    byte[] uidData = null; // contains the UID & manufacture info, only if isSector0 = true
-                    byte[] blockData; // contains 2 (if sector 0) or 3 blocks of 16 bytes of data
-                    byte[] accessBlock = new byte[16]; // complete block, sections see below. key A and B are nulled as they can't read out
-                    byte[] keyA = new byte[6]; // access key A
-                    byte[] accessBits = new byte[3]; // 3 access bytes for access to the data elements
-                    byte[] unused = new byte[1]; // unused byte, can be used for data
-                    byte[] keyB = new byte[6]; // access key B
-                    byte[][] readResult = readMifareSector(mfc, secCnt);
-                    SectorMc1kModel sectorMc1kModel = null;
-                    if (readResult == null) {
-                        writeToUiAppend("ERROR - sector " + secCnt + " could not get read");
-                        // write a zero data to SectorMc1kModel
-                        sectorNumber = secCnt;
-                        if (secCnt == 0) isSector0 = true;
-                        isReadableSector = false;
-                        sectorData = null;
-                        uidData = null;
-                        blockData = null;
-                        accessBlock = null;
-                        keyA = null;
-                        accessBits = null;
-                        unused = null;
-                        keyB = null;
-                        sectorMc1kModel = new SectorMc1kModel(
-                                sectorNumber,
-                                isSector0,
-                                isReadableSector,
-                                sectorData,
-                                uidData,
-                                blockData,
-                                accessBlock,
-                                keyA,
-                                accessBits,
-                                unused,
-                                keyB
-                        );
-                    } else {
-                        // analyze content data and write to SectorMc1kModel
-                        sectorNumber = secCnt;
-                        if (secCnt == 0) isSector0 = true;
-                        isReadableSector = true;
-                        sectorData = readResult[0];
-
-                        // length depends on sector0 or not
-                        if (isSector0) {
-                            uidData = Arrays.copyOfRange(sectorData, 0, 16);
-                            blockData = Arrays.copyOfRange(sectorData, 16, 48);
-                        } else {
-                            blockData = Arrays.copyOfRange(sectorData, 0, 48);
-                        }
-                        accessBlock = Arrays.copyOfRange(sectorData, 48, 64);
-                        keyA = readResult[1];
-                        accessBits = Arrays.copyOfRange(accessBlock, 6, 9);
-                        unused = Arrays.copyOfRange(accessBlock, 9, 10);
-                        keyB = readResult[2];
-                        sectorMc1kModel = new SectorMc1kModel(
-                          sectorNumber,
-                          isSector0,
-                          isReadableSector,
-                          sectorData,
-                          uidData,
-                          blockData,
-                          accessBlock,
-                          keyA,
-                          accessBits,
-                          unused,
-                          keyB
-                        );
-                    }
-                    sectorMc1kModels.add(sectorMc1kModel);
-                    if (sectorMc1kModel != null) {
-                        writeToUiAppend(sectorMc1kModel.dump());
-                    }
-                } // for (int secCnt = 0; secCnt < sectorCount; secCnt++) {
-                writeToUiAppend("collected all sectors in sectorMc1kModels: " + sectorMc1kModels.size());
-
-                 */
             }
             getActivity().runOnUiThread(new Runnable() {
                 @Override
@@ -739,41 +639,54 @@ Michael Roland
      */
     public void authenticate(MifareUltralight mfu, byte[] key) throws Exception {
         System.out.println("AUTHENTICATE");
+        writeToUiAppend("AUTHENTICATE with key " + bytesToHexNpe(key) + " (length " + key.length + ")");
         //byte[] encRndB = transmitRaw(new byte[] { 0x1A, 0x00 });
         byte[] encRndB = mfu.transceive((new byte[] { 0x1A, 0x00 }));
+        writeToUiAppend("encRndB: " + bytesToHexNpe(encRndB));
         if((encRndB.length!=9)||(encRndB[0]!= (byte) 0xAF)) {
+            writeToUiAppend("RuntimeException(Invalid response!)");
             throw new RuntimeException("Invalid response!");
         }
         encRndB=Arrays.copyOfRange(encRndB, 1, 9);
         System.out.println(" - EncRndB: " + bytesToHexNpe(encRndB));
+        writeToUiAppend(" - EncRndB: " + bytesToHexNpe(encRndB));
         byte[] rndB = desDecrypt(key, encRndB);
         System.out.println(" - RndB: " + bytesToHexNpe(rndB));
+        writeToUiAppend(" - RndB: " + bytesToHexNpe(rndB));
         byte[] rndBrot = rotateLeft(rndB);
         System.out.println(" - RndBrot: " + bytesToHexNpe(rndBrot));
+        writeToUiAppend(" - RndBrot: " + bytesToHexNpe(rndBrot));
         byte[] rndA = new byte[8];
         generateRandom(rndA);
         System.out.println(" - RndA: " + bytesToHexNpe(rndA));
+        writeToUiAppend(" - RndA: " + bytesToHexNpe(rndA));
         //byte[] encRndArotPrime = transmitRaw(ArrayUtils.addAll(new byte[] {(byte) 0xAF}, desEncrypt(key, ArrayUtils.addAll(rndA, rndBrot))));
         byte[] encRndArotPrime;
         try {
             encRndArotPrime = mfu.transceive((ArrayUtils.addAll(new byte[]{(byte) 0xAF}, desEncrypt(key, ArrayUtils.addAll(rndA, rndBrot)))));
         } catch (IOException e) {
             Log.e(TAG, "IOEx on second auth round");
+            writeToUiAppend("IOEx on second auth round");
             return;
         }
-
+        writeToUiAppend("encRndArotPrime: " + bytesToHexNpe(encRndArotPrime));
         if((encRndArotPrime.length!=9)||(encRndArotPrime[0]!=0x00)) {
+            writeToUiAppend("RuntimeException (Invalid response!)");
             throw new RuntimeException("Invalid response!");
         }
         encRndArotPrime=Arrays.copyOfRange(encRndArotPrime, 1, 9);
         System.out.println(" - EncRndArot': " + bytesToHexNpe(encRndArotPrime));
+        writeToUiAppend(" - EncRndArot': " + bytesToHexNpe(encRndArotPrime));
         byte[] rndArotPrime = desDecrypt(key, encRndArotPrime);
         System.out.println(" - RndArot': " + bytesToHexNpe(rndArotPrime));
+        writeToUiAppend(" - RndArot': " + bytesToHexNpe(rndArotPrime));
         if(!Arrays.equals(rotateLeft(rndA), rndArotPrime)) {
+            writeToUiAppend("RuntimeException (Card authentication failed)");
             throw new RuntimeException("Card authentication failed");
         } else {
             Log.d(TAG, "Card authentication success");
             System.out.println("Card authentication success");
+            writeToUiAppend("Card authentication success");
         }
     }
 
@@ -914,156 +827,6 @@ Michael Roland
         }
         return null;
     }
-
-    /**
-     * read a single block from mifare classic tag by block
-     *
-     * @param mif
-     * @param blockCnt
-     * @param key      usually keyB for blocks outside the scope of user accessible memory
-     * @return the content of block (16 bytes) or null if any error occurs
-     */
-    private byte[] readBlock(MifareClassic mif, int blockCnt, byte[] key) {
-        byte[] block;
-        int secCnt = mif.blockToSector(blockCnt);
-        System.out.println("readBlock for block " + blockCnt + " is in sector " + secCnt);
-        try {
-            mif.authenticateSectorWithKeyB(secCnt, key);
-            block = mif.readBlock(blockCnt);
-        } catch (IOException e) {
-            //throw new RuntimeException(e);
-            System.out.println("RuntimeException: " + e.getMessage());
-            return null;
-        }
-        return block;
-    }
-
-    /**
-     * read mifare classic card sector by sector
-     *
-     * @param mif
-     * @param secCnt 0 to 15 (for Mifare Classic 1K) or in general sectorCount
-     * @return a double byte array
-     * [0] returns the complete data of one sector
-     * [1] returns key A if used for authentication
-     * [2] returns key B if used for authentication
-     * returns NULL if no key was found
-     */
-    private byte[][] readMifareSector(MifareClassic mif, int secCnt) {
-        byte[][] returnBytes = new byte[3][64];
-        byte[] keyABytes = null;
-        byte[] keyBBytes = null;
-        byte[] dataBytes = new byte[64];
-        boolean isAuthenticated = false;
-        // try to authenticate with known keys - no brute force
-        Log.d(TAG, "");
-        Log.d(TAG, "readMifareSector " + secCnt);
-        try {
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                keyABytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                Log.d(TAG, "Auth success with A KEY_MIFARE_APPLICATION_DIRECTORY");
-                isAuthenticated = true;
-                // there are 3 default keys available
-                // MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY: a0a1a2a3a4a5
-                // MifareClassic.KEY_DEFAULT:                      ffffffffffff
-                // MifareClassic.KEY_NFC_FORUM:                    d3f7d3f7d3f7
-            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                keyABytes = MifareClassic.KEY_DEFAULT.clone();
-                Log.d(TAG, "Auth success with A KEY_DEFAULT");
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                keyABytes = MifareClassic.KEY_NFC_FORUM.clone();
-                Log.d(TAG, "Auth success with A KEY_NFC_FORUM");
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                keyBBytes = MifareClassic.KEY_DEFAULT.clone();
-                Log.d(TAG, "Auth success with B KEY_DEFAULT");
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                keyBBytes = MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY.clone();
-                isAuthenticated = true;
-                Log.d(TAG, "Auth success with B KEY_MIFARE_APPLICATION_DIRECTORY");
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                keyBBytes = MifareClassic.KEY_NFC_FORUM;
-                Log.d(TAG, "Auth success with B KEY_NFC_FORUM");
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyA(secCnt, hexStringToByteArray("4D57414C5648"))) {
-                keyABytes = hexStringToByteArray("4D57414C5648");
-                Log.d(TAG, "Auth success with A Crowne Plaza key");
-                isAuthenticated = true;
-                //4D57414C5648
-            } else {
-                //return null;
-                Log.d(TAG, "NO Auth success");
-            }
-
-            // get the blockindex
-            int block_index = mif.sectorToBlock(secCnt);
-            // get block in sector
-            int blocksInSector = mif.getBlockCountInSector(secCnt);
-            // get the data of each block
-            dataBytes = new byte[(16 * blocksInSector)];
-            for (int blockInSectorCount = 0; blockInSectorCount < blocksInSector; blockInSectorCount++) {
-                // get following data
-                byte[] block = mif.readBlock((block_index + blockInSectorCount));
-                System.arraycopy(block, 0, dataBytes, (blockInSectorCount * 16), 16);
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Sector " + secCnt + " IOException: " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-        System.out.println("*** dataBytes for sector " + secCnt + " length: " + dataBytes.length + " data: " + bytesToHexNpe(dataBytes));
-        returnBytes[0] = dataBytes;
-        returnBytes[1] = keyABytes;
-        returnBytes[2] = keyBBytes;
-        return returnBytes;
-    }
-
-/*
-    private byte[] readMifareSector(MifareClassic mif, int secCnt) {
-        byte[] returnBytes = new byte[0];
-        boolean isAuthenticated = false;
-        // try to authenticate with known keys - no brute force
-        try {
-            if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_DEFAULT)) {
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyA(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_DEFAULT)) {
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)) {
-                isAuthenticated = true;
-            } else if (mif.authenticateSectorWithKeyB(secCnt, MifareClassic.KEY_NFC_FORUM)) {
-                isAuthenticated = true;
-                writeToUiAppend(readResult, "auth success in sector: " + secCnt);
-            } else {
-                writeToUiAppend(readResult, "auth denied in sector: " + secCnt);
-                // gives an error, no access to textview from background thread
-                return null;
-            }
-            // get the blockindex
-            int block_index = mif.sectorToBlock(secCnt);
-            // get block in sector
-            int blocksInSector = mif.getBlockCountInSector(secCnt);
-            // get the data of each block
-            returnBytes = new byte[(16 * blocksInSector)];
-            for (int blockInSectorCount = 0; blockInSectorCount < blocksInSector; blockInSectorCount++) {
-                // get following data
-                byte[] block = mif.readBlock((block_index + blockInSectorCount));
-                System.arraycopy(block, 0, returnBytes, (blockInSectorCount * 16), 16);
-            }
-        } catch (IOException e) {
-            writeToUiAppend(readResult, "IOException: " + e);
-            e.printStackTrace();
-            return null;
-        }
-        return returnBytes;
-    }
-
- */
 
     /**
      * Sound files downloaded from Material Design Sounds

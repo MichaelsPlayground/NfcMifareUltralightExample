@@ -162,6 +162,13 @@ public class TagIdentification {
      * section for Mifare Classic methods
      */
 
+    public enum techClassic {
+        MifareClassic1K,
+        MifareClassic4K,
+        MifareClassicMini,
+        MifareClassic1KEv1,
+        MifareClassic4KEv1
+    }
 
     /**
      * section for Mifare Ultralight methods
