@@ -34,6 +34,7 @@ public class Utils {
         mp.start();
     }
 
+    // gives an 19 byte long timestamp
     public static String getTimestamp() {
         // gives a 19 character long string
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -45,12 +46,13 @@ public class Utils {
         }
     }
 
+    // gives an 15 byte long timestamp
     public static String getTimestampShort() {
         // gives a 15 character long string
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return ZonedDateTime
                     .now(ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ofPattern("uuuu.MM.dd HH:mm:ss"));
+                    .format(DateTimeFormatter.ofPattern("uuMMdd HH:mm:ss"));
         } else {
             return new SimpleDateFormat("yyMMdd HH:mm:ss").format(new Date());
         }
