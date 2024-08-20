@@ -1,13 +1,22 @@
 # NFC Mifare Ultralight example
 
+## Note on this app
+
+
+
+### Description
+
 This app reads and writes data to NXP's Mifare Ultralight tag. It is tested with the Ultralight C and Ultralight EV1 type so 
 I cannot guarantee that it works on the other type also.
 
 The Mifare Ultralight family consists of 3 main subtypes:
 
-1) Mifare Ultralight: Get the datasheet MF0ICU1 here: https://www.nxp.com/docs/en/data-sheet/MF0ICU1.pdf
-2) Mifare Ultralight C: Get the datasheet here MF0ICU2: https://www.nxp.com/docs/en/data-sheet/MF0ICU2.pdf
-3) Mifare Ultralight EV1: Get the datasheet here: https://www.nxp.com/docs/en/data-sheet/MF0ULX1.pdf
+1) MIFARE Ultralight: Get the datasheet MF0ICU1 here: https://www.nxp.com/docs/en/data-sheet/MF0ICU1.pdf
+2) MIFARE Ultralight C: Get the datasheet here MF0ICU2: https://www.nxp.com/docs/en/data-sheet/MF0ICU2.pdf
+3) MIFARE Ultralight EV1: Get the datasheet here: https://www.nxp.com/docs/en/data-sheet/MF0ULX1.pdf
+ 
+MIFARE Ultralight AES features and hints (AN13452): https://www.nxp.com/docs/en/application-note/AN13452.pdf
+MIFARE Ultralight EV1 features and hints (AN11340): https://www.nxp.com/docs/en/application-note/AN11340.pdf
 
 All datasheets are available in the docs folder of this repository but it is always better to get one from the origin source.
 
@@ -43,8 +52,7 @@ Counter on Mifare Ultralight-C:
 The MF0ICU2 features a 16-bit one-way counter, located at the first two bytes of page 
 29h. The default counter value is 0000h.
 
-The first1
- valid WRITE or COMPATIBILITY WRITE to address 29h can be performed
+The first1 valid WRITE or COMPATIBILITY WRITE to address 29h can be performed
 with any value in the range between 0001h and FFFFh and corresponds to the initial
 counter value. Every consecutive WRITE command, which represents the increment, can
 contain values between 0001h and 000Fh. Upon such WRITE command and following
@@ -81,3 +89,4 @@ and does not update the respective counter.
 An increment by zero (000000h) is always possible, but does not have any impact on the
 counter value.
 ```
+
