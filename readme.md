@@ -2,7 +2,8 @@
 
 ## Note on this app
 
-
+At the moment this app is just a stub with no running code for an Ultralight NFC tag. I will add the code 
+for these tags soon.
 
 ### Description
 
