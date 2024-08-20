@@ -2,12 +2,12 @@
 
 ## Note on this app
 
-At the moment this app is just a stub with no running code for an Ultralight NFC tag. I will add the code 
+At the moment this app is just a stub with no running code for a MIFARE Ultralight NFC tag. I will add the code 
 for these tags soon.
 
 ### Description
 
-This app reads and writes data to NXP's Mifare Ultralight tag. It is tested with the Ultralight C and Ultralight EV1 type so 
+This app reads and writes data to NXP's MIFARE Ultralight tag. It is tested with the Ultralight C and Ultralight EV1 type so 
 I cannot guarantee that it works on the other type also.
 
 The Mifare Ultralight family consists of 3 main subtypes:
@@ -16,7 +16,7 @@ The Mifare Ultralight family consists of 3 main subtypes:
 2) MIFARE Ultralight C: Get the datasheet here MF0ICU2: https://www.nxp.com/docs/en/data-sheet/MF0ICU2.pdf
 3) MIFARE Ultralight EV1: Get the datasheet here: https://www.nxp.com/docs/en/data-sheet/MF0ULX1.pdf
  
-MIFARE Ultralight AES features and hints (AN13452): https://www.nxp.com/docs/en/application-note/AN13452.pdf
+MIFARE Ultralight AES features and hints (AN13452): https://www.nxp.com/docs/en/application-note/AN13452.pdf **Note: this for the renewed version of MIFARE Ultralight C tags**
 MIFARE Ultralight EV1 features and hints (AN11340): https://www.nxp.com/docs/en/application-note/AN11340.pdf
 
 All datasheets are available in the docs folder of this repository but it is always better to get one from the origin source.
