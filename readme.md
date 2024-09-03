@@ -5,6 +5,18 @@
 At the moment this app is just a stub with no running code for a MIFARE Ultralight NFC tag. I will add the code 
 for these tags soon.
 
+# Important note
+I decided to stop any work on this repository as it uses the Mifare Ultralight class for accessing the tag. Unfortunately this class is not available on all Android devices. 
+I setup two new repositories that are using the NfcA class - this class is available on all Android devices with NFC capabilities.
+
+**MIFARE Ultralight C tag**: https://github.com/AndroidCrypto/MIFARE_Ultralight_C_Explorer
+
+Tutorial for the MIFARE Ultralight C Explorer: https://medium.com/@androidcrypto/explore-a-mifare-ultralight-c-nfc-tag-android-java-e6408b1030cf
+
+**MIFARE Ultralight EV1 tag**: https://github.com/AndroidCrypto/MIFARE_Ultralight_EV1_Explorer
+
+Tutorial for the MIFARE Ultralight EV1 Explorer: https://medium.com/@androidcrypto/explore-a-mifare-ultralight-ev1-nfc-tag-android-java-a23d0b4b0ea5
+
 ### Description
 
 This app reads and writes data to NXP's MIFARE Ultralight tag. It is tested with the Ultralight C and Ultralight EV1 type so 
